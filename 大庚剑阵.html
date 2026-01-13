@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>御剑飞行 - 手势控制</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            overflow: hidden;
+            background: #000;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+        }
+
+        #video-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            border: 2px solid rgba(0, 255, 100, 0.5);
+            border-radius: 10px;
+            overflow: hidden;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
+        }
+
+        #video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1);
+        }
+
+        #canvas-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(-1);
+            pointer-events: none;
+        }
+
+        #mode-display {
+            position: fixed;
+            top: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #00ff64;
+            font-size: 24px;
+            text-shadow: 0 0 20px rgba(0, 255, 100, 0.8);
+            z-index: 100;
+            letter-spacing: 4px;
+            font-weight: bold;
+        }
+
+        #gesture-info {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: rgba(0, 255, 100, 0.7);
+            font-size: 14px;
+            z-index: 100;
+            line-height: 1.8;
+        }
+
+        .loading {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00ff64;
+            font-size: 20px;
+            z-index: 1000;
+            text-shadow: 0 0 20px rgba(0, 255, 100, 0.8);
+        }
+
+        .loading.hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+
+    <div id="video-container">
+        <video id="video" autoplay playsinline></video>
+        <canvas id="canvas-overlay"></canvas>
+    </div>
+
+    <div id="mode-display">御剑待命</div>
+
+    <div id="gesture-info">
+        ☝️ 一指 - 御剑飞行<br>
+        ✊ 握拳 - 剑阵归位<br>
+        🖐️ 五指 - 天女散剑<br>
+        🤟 三指 - 大庚剑阵
+    </div>
+
+    <div class="loading" id="loading">正在初始化摄像头...</div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // ==================== 常量配置 ====================
+        const CONFIG = {
+            SWORD_COUNT: 500,
+            SPHERE_RADIUS: 8,
+            BOID_SEPARATION: 1.5,
+            BOID_ALIGNMENT: 0.8,
+            BOID_COHESION: 0.6,
+            MAX_SPEED: 0.15,
+            MAX_FORCE: 0.008,
+            TRANSITION_SPEED: 0.08,
+            FAST_TRANSITION_SPEED: 0.15,
+            BOUNDARY: 25,
+            STAR_COUNT: 300
+        };
+
+        // ==================== 全局变量 ====================
+        let scene, camera, renderer, composer;
+        let swords = [];
+        let stars = [];
+        let currentMode = 'sphere'; // sphere, fly, scatter, rain
+        let targetMode = 'sphere';
+        let handPosition = new THREE.Vector3(0, 0, 0);
+        let handDirection = new THREE.Vector3(0, 0, 1);
+        let isTransitioning = false;
+        let transitionProgress = 0;
+        let cameraTarget = new THREE.Vector3(0, 0, 0);
+        let sphereRotation = 0;
+        let handDetected = false;
+        let handLandmarks = null;
+        let gestureType = 'none';
+        let previousGesture = 'none';
+
+        // ==================== 飞剑类 ====================
+        class FlyingSword {
+            constructor(index, total) {
+                this.index = index;
+                this.mesh = this.createSwordMesh();
+
+                // Boid 属性
+                this.position = new THREE.Vector3();
+                this.velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1,
+                    (Math.random() - 0.5) * 0.1
+                );
+                this.acceleration = new THREE.Vector3();
+
+                // 目标属性（用于平滑过渡）
+                this.targetPosition = new THREE.Vector3();
+                this.targetRotation = new THREE.Euler();
+                this.targetScale = 1;
+
+                // 球形分布初始化
+                this.sphereTheta = (index / total) * Math.PI * 20;
+                this.spherePhi = Math.acos(1 - 2 * (index + 0.5) / total);
+                this.sphereOffset = Math.random() * 0.5;
+
+                // 雨阵属性
+                this.rainLayer = Math.floor(Math.random() * 5);
+                this.rainOffset = new THREE.Vector3(
+                    (Math.random() - 0.5) * 30,
+                    Math.random() * 20 + 10,
+                    (Math.random() - 0.5) * 20 - 5
+                );
+
+                // 初始化位置
+                this.initSpherePosition();
+            }
+
+            createSwordMesh() {
+                const group = new THREE.Group();
+
+                // 剑刃材质 - 荧光绿
+                const bladeMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff64,
+                    transparent: true,
+                    opacity: 0.9
+                });
+
+                const glowMaterial = new THREE.MeshBasicMaterial({
+                    color: 0x00ff64,
+                    transparent: true,
+                    opacity: 0.4
+                });
+
+                // 剑刃 - 细长菱形
+                const bladeShape = new THREE.Shape();
+                bladeShape.moveTo(0, 0);
+                bladeShape.lineTo(0.08, 0.5);
+                bladeShape.lineTo(0, 2.0);
+                bladeShape.lineTo(-0.08, 0.5);
+                bladeShape.closePath();
+
+                const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, {
+                    depth: 0.04,
+                    bevelEnabled: false
+                });
+                bladeGeometry.translate(0, 0, -0.02);
+                const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
+                group.add(blade);
+
+                // 剑刃光晕
+                const glowGeometry = new THREE.ExtrudeGeometry(bladeShape, {
+                    depth: 0.1,
+                    bevelEnabled: false
+                });
+                glowGeometry.scale(1.3, 1.1, 1);
+                glowGeometry.translate(0, -0.1, -0.05);
+                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
+                group.add(glow);
+
+                // 护手 - 横向小条
+                const guardGeometry = new THREE.BoxGeometry(0.4, 0.08, 0.08);
+                const guard = new THREE.Mesh(guardGeometry, bladeMaterial);
+                guard.position.set(0, 0, 0);
+                group.add(guard);
+
+                // 剑柄
+                const handleGeometry = new THREE.CylinderGeometry(0.04, 0.05, 0.5, 8);
+                const handle = new THREE.Mesh(handleGeometry, bladeMaterial);
+                handle.position.set(0, -0.3, 0);
+                group.add(handle);
+
+                // 剑柄末端
+                const pommelGeometry = new THREE.SphereGeometry(0.06, 8, 8);
+                const pommel = new THREE.Mesh(pommelGeometry, bladeMaterial);
+                pommel.position.set(0, -0.55, 0);
+                group.add(pommel);
+
+                // 整体缩放
+                group.scale.set(0.5, 0.5, 0.5);
+
+                return group;
+            }
+
+            initSpherePosition() {
+                const radius = CONFIG.SPHERE_RADIUS + this.sphereOffset;
+                this.position.setFromSphericalCoords(
+                    radius,
+                    this.spherePhi,
+                    this.sphereTheta
+                );
+                this.targetPosition.copy(this.position);
+                this.updateMesh();
+            }
+
+            // Boid 分离行为
+            separate(swords) {
+                const steer = new THREE.Vector3();
+                let count = 0;
+
+                for (const other of swords) {
+                    if (other === this) continue;
+                    const d = this.position.distanceTo(other.position);
+                    if (d > 0 && d < CONFIG.BOID_SEPARATION) {
+                        const diff = new THREE.Vector3().subVectors(this.position, other.position);
+                        diff.normalize();
+                        diff.divideScalar(d);
+                        steer.add(diff);
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    steer.divideScalar(count);
+                    steer.normalize();
+                    steer.multiplyScalar(CONFIG.MAX_SPEED);
+                    steer.sub(this.velocity);
+                    steer.clampLength(0, CONFIG.MAX_FORCE);
+                }
+
+                return steer;
+            }
+
+            // Boid 对齐行为
+            align(swords) {
+                const sum = new THREE.Vector3();
+                let count = 0;
+                const neighborDist = 4;
+
+                for (const other of swords) {
+                    if (other === this) continue;
+                    const d = this.position.distanceTo(other.position);
+                    if (d > 0 && d < neighborDist) {
+                        sum.add(other.velocity);
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    sum.divideScalar(count);
+                    sum.normalize();
+                    sum.multiplyScalar(CONFIG.MAX_SPEED);
+                    const steer = new THREE.Vector3().subVectors(sum, this.velocity);
+                    steer.clampLength(0, CONFIG.MAX_FORCE);
+                    return steer;
+                }
+
+                return new THREE.Vector3();
+            }
+
+            // Boid 聚合行为
+            cohesion(swords) {
+                const sum = new THREE.Vector3();
+                let count = 0;
+                const neighborDist = 6;
+
+                for (const other of swords) {
+                    if (other === this) continue;
+                    const d = this.position.distanceTo(other.position);
+                    if (d > 0 && d < neighborDist) {
+                        sum.add(other.position);
+                        count++;
+                    }
+                }
+
+                if (count > 0) {
+                    sum.divideScalar(count);
+                    return this.seek(sum);
+                }
+
+                return new THREE.Vector3();
+            }
+
+            // 寻找目标
+            seek(target) {
+                const desired = new THREE.Vector3().subVectors(target, this.position);
+                desired.normalize();
+                desired.multiplyScalar(CONFIG.MAX_SPEED);
+                const steer = new THREE.Vector3().subVectors(desired, this.velocity);
+                steer.clampLength(0, CONFIG.MAX_FORCE);
+                return steer;
+            }
+
+            // 边界约束
+            boundaries() {
+                const steer = new THREE.Vector3();
+                const margin = 3;
+                const boundary = CONFIG.BOUNDARY;
+
+                if (this.position.x < -boundary + margin) {
+                    steer.x = CONFIG.MAX_SPEED;
+                } else if (this.position.x > boundary - margin) {
+                    steer.x = -CONFIG.MAX_SPEED;
+                }
+
+                if (this.position.y < -boundary + margin) {
+                    steer.y = CONFIG.MAX_SPEED;
+                } else if (this.position.y > boundary - margin) {
+                    steer.y = -CONFIG.MAX_SPEED;
+                }
+
+                if (this.position.z < -boundary + margin) {
+                    steer.z = CONFIG.MAX_SPEED;
+                } else if (this.position.z > boundary - margin) {
+                    steer.z = -CONFIG.MAX_SPEED;
+                }
+
+                return steer;
+            }
+
+            // 应用 Boid 行为
+            flock(swords, target) {
+                const sep = this.separate(swords).multiplyScalar(CONFIG.BOID_SEPARATION);
+                const ali = this.align(swords).multiplyScalar(CONFIG.BOID_ALIGNMENT);
+                const coh = this.cohesion(swords).multiplyScalar(CONFIG.BOID_COHESION);
+                const seek = this.seek(target).multiplyScalar(1.2);
+                const bound = this.boundaries().multiplyScalar(2);
+
+                this.acceleration.add(sep);
+                this.acceleration.add(ali);
+                this.acceleration.add(coh);
+                this.acceleration.add(seek);
+                this.acceleration.add(bound);
+            }
+
+            // 更新球形模式
+            updateSphereMode(time) {
+                const radius = CONFIG.SPHERE_RADIUS + this.sphereOffset + Math.sin(time * 2 + this.index) * 0.3;
+                const theta = this.sphereTheta + sphereRotation;
+                const phi = this.spherePhi + Math.sin(time + this.index * 0.1) * 0.1;
+
+                this.targetPosition.setFromSphericalCoords(radius, phi, theta);
+
+                // 剑尖指向球心（向内）
+                const toCenter = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), this.targetPosition);
+                this.lookAtDirection(toCenter);
+            }
+
+            // 更新飞行模式
+            updateFlyMode(swords, target) {
+                this.flock(swords, target);
+
+                this.velocity.add(this.acceleration);
+                this.velocity.clampLength(0, CONFIG.MAX_SPEED);
+                this.targetPosition.add(this.velocity);
+                this.acceleration.set(0, 0, 0);
+
+                // 剑尖指向飞行方向
+                if (this.velocity.length() > 0.01) {
+                    this.lookAtDirection(this.velocity);
+                }
+            }
+
+            // 更新散开模式
+            updateScatterMode(time) {
+                const direction = new THREE.Vector3().copy(this.position).normalize();
+                const targetDist = CONFIG.BOUNDARY * 0.8;
+
+                this.targetPosition.copy(direction).multiplyScalar(targetDist);
+                this.targetPosition.x += Math.sin(time + this.index) * 2;
+                this.targetPosition.y += Math.cos(time + this.index * 0.7) * 2;
+
+                // 剑尖指向外
+                this.lookAtDirection(direction);
+            }
+
+            // 更新剑雨模式
+            updateRainMode(time) {
+                const layerZ = -10 + this.rainLayer * 5;
+
+                this.targetPosition.set(
+                    this.rainOffset.x + Math.sin(time * 0.5 + this.index) * 0.5,
+                    this.rainOffset.y - (time * 0.02 + this.index * 0.01) % 30,
+                    layerZ
+                );
+
+                // 重置位置（循环下落）
+                if (this.targetPosition.y < -15) {
+                    this.rainOffset.y = 20 + Math.random() * 10;
+                    this.rainOffset.x = (Math.random() - 0.5) * 30;
+                }
+
+                // 剑尖向下
+                this.lookAtDirection(new THREE.Vector3(0, -1, 0));
+
+                // 远近缩放
+                this.targetScale = 0.8 + (this.rainLayer / 5) * 0.5;
+            }
+
+            // 让剑指向某个方向
+            lookAtDirection(direction) {
+                if (direction.length() < 0.001) return;
+
+                const dir = direction.clone().normalize();
+                // 剑的默认方向是Y轴正方向，需要旋转到目标方向
+                const up = new THREE.Vector3(0, 1, 0);
+                const quaternion = new THREE.Quaternion();
+                quaternion.setFromUnitVectors(up, dir);
+
+                const euler = new THREE.Euler().setFromQuaternion(quaternion);
+                this.targetRotation.copy(euler);
+            }
+
+            // 更新网格位置（平滑插值）
+            updateMesh() {
+                const lerpSpeed = isTransitioning ? CONFIG.FAST_TRANSITION_SPEED : CONFIG.TRANSITION_SPEED;
+
+                // 位置插值
+                this.mesh.position.lerp(this.targetPosition, lerpSpeed);
+                this.position.copy(this.mesh.position);
+
+                // 旋转插值
+                this.mesh.rotation.x += (this.targetRotation.x - this.mesh.rotation.x) * lerpSpeed;
+                this.mesh.rotation.y += (this.targetRotation.y - this.mesh.rotation.y) * lerpSpeed;
+                this.mesh.rotation.z += (this.targetRotation.z - this.mesh.rotation.z) * lerpSpeed;
+
+                // 缩放插值
+                const currentScale = this.mesh.scale.x;
+                const newScale = currentScale + (this.targetScale - currentScale) * lerpSpeed;
+                this.mesh.scale.set(newScale, newScale, newScale);
+            }
+        }
+
+        // ==================== 场景初始化 ====================
+        function initScene() {
+            // 场景
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x000000);
+            scene.fog = new THREE.FogExp2(0x000000, 0.015);
+
+            // 相机
+            camera = new THREE.PerspectiveCamera(
+                60,
+                window.innerWidth / window.innerHeight,
+                0.1,
+                1000
+            );
+            camera.position.set(0, 0, 25);
+
+            // 渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+            // 后处理 - Bloom效果
+            composer = new EffectComposer(renderer);
+            const renderPass = new RenderPass(scene, camera);
+            composer.addPass(renderPass);
+
+            const bloomPass = new UnrealBloomPass(
+                new THREE.Vector2(window.innerWidth, window.innerHeight),
+                1.5,  // strength
+                0.4,  // radius
+                0.85  // threshold
+            );
+            composer.addPass(bloomPass);
+
+            // 创建飞剑
+            for (let i = 0; i < CONFIG.SWORD_COUNT; i++) {
+                const sword = new FlyingSword(i, CONFIG.SWORD_COUNT);
+                swords.push(sword);
+                scene.add(sword.mesh);
+            }
+
+            // 创建星空
+            createStars();
+
+            // 窗口大小调整
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        // 创建星空背景
+        function createStars() {
+            const geometry = new THREE.BufferGeometry();
+            const positions = [];
+            const sizes = [];
+
+            for (let i = 0; i < CONFIG.STAR_COUNT; i++) {
+                const x = (Math.random() - 0.5) * 200;
+                const y = (Math.random() - 0.5) * 200;
+                const z = (Math.random() - 0.5) * 200;
+                positions.push(x, y, z);
+                sizes.push(Math.random() * 2 + 0.5);
+            }
+
+            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+            geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
+
+            const material = new THREE.PointsMaterial({
+                color: 0xffffff,
+                size: 0.3,
+                transparent: true,
+                opacity: 0.6,
+                sizeAttenuation: true
+            });
+
+            const starField = new THREE.Points(geometry, material);
+            scene.add(starField);
+            stars.push(starField);
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // ==================== 手势识别 ====================
+        async function initHandTracking() {
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas-overlay');
+            const ctx = canvas.getContext('2d');
+
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                video.srcObject = stream;
+
+                await new Promise(resolve => {
+                    video.onloadedmetadata = () => {
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        resolve();
+                    };
+                });
+
+                document.getElementById('loading').classList.add('hidden');
+
+                // 初始化 MediaPipe Hands
+                const hands = new Hands({
+                    locateFile: (file) => {
+                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
+                    }
+                });
+
+                hands.setOptions({
+                    maxNumHands: 1,
+                    modelComplexity: 1,
+                    minDetectionConfidence: 0.7,
+                    minTrackingConfidence: 0.5
+                });
+
+                hands.onResults((results) => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
+                        handDetected = true;
+                        handLandmarks = results.multiHandLandmarks[0];
+
+                        // 绘制手部关键点
+                        drawHand(ctx, handLandmarks, canvas.width, canvas.height);
+
+                        // 识别手势
+                        recognizeGesture(handLandmarks);
+
+                        // 更新手的方向
+                        updateHandDirection(handLandmarks);
+                    } else {
+                        handDetected = false;
+                        gestureType = 'none';
+                    }
+                });
+
+                // 开始检测
+                const detectFrame = async () => {
+                    await hands.send({ image: video });
+                    requestAnimationFrame(detectFrame);
+                };
+
+                video.onloadeddata = () => {
+                    detectFrame();
+                };
+
+            } catch (error) {
+                console.error('摄像头初始化失败:', error);
+                document.getElementById('loading').textContent = '摄像头初始化失败，请检查权限';
+            }
+        }
+
+        // 绘制手部关键点
+        function drawHand(ctx, landmarks, width, height) {
+            ctx.fillStyle = '#00ff64';
+            ctx.strokeStyle = '#00ff64';
+            ctx.lineWidth = 2;
+
+            // 连接线
+            const connections = [
+                [0, 1], [1, 2], [2, 3], [3, 4],
+                [0, 5], [5, 6], [6, 7], [7, 8],
+                [0, 9], [9, 10], [10, 11], [11, 12],
+                [0, 13], [13, 14], [14, 15], [15, 16],
+                [0, 17], [17, 18], [18, 19], [19, 20],
+                [5, 9], [9, 13], [13, 17]
+            ];
+
+            ctx.beginPath();
+            for (const [i, j] of connections) {
+                const x1 = landmarks[i].x * width;
+                const y1 = landmarks[i].y * height;
+                const x2 = landmarks[j].x * width;
+                const y2 = landmarks[j].y * height;
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+            }
+            ctx.stroke();
+
+            // 关键点
+            for (const point of landmarks) {
+                ctx.beginPath();
+                ctx.arc(point.x * width, point.y * height, 4, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 手势识别
+        function recognizeGesture(landmarks) {
+            // 获取手指状态
+            const fingers = getFingerStates(landmarks);
+            const fingerCount = fingers.filter(f => f).length;
+
+            // 计算手掌大小（用于判断远近）
+            const palmSize = getPalmSize(landmarks);
+
+            previousGesture = gestureType;
+
+            // 一指 - 食指伸出
+            if (fingerCount === 1 && fingers[1]) {
+                gestureType = 'point';
+                targetMode = 'fly';
+                document.getElementById('mode-display').textContent = '御剑飞行';
+            }
+            // 握拳
+            else if (fingerCount === 0 && palmSize > 0.08) {
+                gestureType = 'fist';
+                targetMode = 'sphere';
+                document.getElementById('mode-display').textContent = '剑阵归位';
+            }
+            // 五指张开
+            else if (fingerCount === 5) {
+                gestureType = 'open';
+                targetMode = 'scatter';
+                document.getElementById('mode-display').textContent = '天女散剑';
+            }
+            // 三指（食指、中指、无名指 或 食指、中指、小指）
+            else if (fingerCount === 3 && fingers[1] && fingers[2]) {
+                gestureType = 'three';
+                targetMode = 'rain';
+                document.getElementById('mode-display').textContent = '大庚剑阵';
+            }
+            else {
+                // 保持当前状态
+            }
+
+            // 检测模式变化，触发快速过渡
+            if (previousGesture !== gestureType && gestureType !== 'none') {
+                isTransitioning = true;
+                transitionProgress = 0;
+            }
+        }
+
+        // 获取手指状态
+        function getFingerStates(landmarks) {
+            const fingers = [];
+
+            // 拇指
+            const thumbTip = landmarks[4];
+            const thumbIP = landmarks[3];
+            const thumbMCP = landmarks[2];
+            fingers.push(thumbTip.x < thumbIP.x);  // 简化判断
+
+            // 其他四指
+            const fingerTips = [8, 12, 16, 20];
+            const fingerPIPs = [6, 10, 14, 18];
+            const fingerMCPs = [5, 9, 13, 17];
+
+            for (let i = 0; i < 4; i++) {
+                const tip = landmarks[fingerTips[i]];
+                const pip = landmarks[fingerPIPs[i]];
+                const mcp = landmarks[fingerMCPs[i]];
+
+                // 手指伸直判断：指尖高于PIP关节
+                fingers.push(tip.y < pip.y - 0.02);
+            }
+
+            return fingers;
+        }
+
+        // 计算手掌大小
+        function getPalmSize(landmarks) {
+            const wrist = landmarks[0];
+            const middleMCP = landmarks[9];
+            return Math.sqrt(
+                Math.pow(wrist.x - middleMCP.x, 2) +
+                Math.pow(wrist.y - middleMCP.y, 2)
+            );
+        }
+
+        // 更新手的方向
+        function updateHandDirection(landmarks) {
+            // 使用食指方向
+            const indexTip = landmarks[8];
+            const indexMCP = landmarks[5];
+
+            // 转换为3D空间方向
+            const dirX = (indexTip.x - 0.5) * 2;  // -1 到 1
+            const dirY = -(indexTip.y - 0.5) * 2;  // -1 到 1
+
+            handDirection.set(dirX * 15, dirY * 15, -10);
+
+            // 手掌中心位置
+            const palmCenter = landmarks[9];
+            handPosition.set(
+                (palmCenter.x - 0.5) * 30,
+                -(palmCenter.y - 0.5) * 30,
+                0
+            );
+        }
+
+        // ==================== 动画循环 ====================
+        let time = 0;
+
+        function animate() {
+            requestAnimationFrame(animate);
+
+            time += 0.016;
+            sphereRotation += 0.005;
+
+            // 更新过渡状态
+            if (isTransitioning) {
+                transitionProgress += 0.02;
+                if (transitionProgress >= 1) {
+                    isTransitioning = false;
+                    currentMode = targetMode;
+                }
+            } else {
+                currentMode = targetMode;
+            }
+
+            // 根据模式更新飞剑
+            const flyTarget = handDirection.clone();
+
+            for (const sword of swords) {
+                switch (currentMode) {
+                    case 'sphere':
+                        sword.updateSphereMode(time);
+                        sword.targetScale = 1;
+                        break;
+                    case 'fly':
+                        sword.updateFlyMode(swords, flyTarget);
+                        sword.targetScale = 1;
+                        break;
+                    case 'scatter':
+                        sword.updateScatterMode(time);
+                        sword.targetScale = 0.8;
+                        break;
+                    case 'rain':
+                        sword.updateRainMode(time);
+                        break;
+                }
+
+                sword.updateMesh();
+            }
+
+            // 更新相机
+            updateCamera();
+
+            // 星星闪烁
+            if (stars[0]) {
+                stars[0].rotation.y += 0.0002;
+            }
+
+            composer.render();
+        }
+
+        // 更新相机位置
+        function updateCamera() {
+            let targetCameraPos;
+
+            switch (currentMode) {
+                case 'sphere':
+                    targetCameraPos = new THREE.Vector3(0, 0, 25);
+                    cameraTarget.set(0, 0, 0);
+                    break;
+                case 'fly':
+                    // 跟随剑群中心
+                    const center = getSwordsCenter();
+                    targetCameraPos = new THREE.Vector3(
+                        center.x * 0.3,
+                        center.y * 0.3,
+                        25 + center.z * 0.2
+                    );
+                    cameraTarget.lerp(center, 0.05);
+                    break;
+                case 'scatter':
+                    targetCameraPos = new THREE.Vector3(0, 0, 35);
+                    cameraTarget.set(0, 0, 0);
+                    break;
+                case 'rain':
+                    targetCameraPos = new THREE.Vector3(0, 5, 20);
+                    cameraTarget.set(0, 0, -5);
+                    break;
+            }
+
+            camera.position.lerp(targetCameraPos, 0.03);
+            camera.lookAt(cameraTarget);
+        }
+
+        // 获取剑群中心
+        function getSwordsCenter() {
+            const center = new THREE.Vector3();
+            for (const sword of swords) {
+                center.add(sword.position);
+            }
+            center.divideScalar(swords.length);
+            return center;
+        }
+
+        // ==================== 启动 ====================
+        initScene();
+        animate();
+
+        // 加载 MediaPipe
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
+        script.crossOrigin = 'anonymous';
+        script.onload = () => {
+            initHandTracking();
+        };
+        document.head.appendChild(script);
+
+    </script>
+</body>
+</html>
