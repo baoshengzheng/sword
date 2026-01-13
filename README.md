@@ -23,13 +23,13 @@
 首先将本项目克隆到本地：
 
 ```bash
-git clone https://github.com/your-username/剑阵飞行.git
-cd 剑阵飞行
+git clone https://github.com/zhangjihai360/Flying-Sword-Formation
+cd Flying-Sword-Formation
 ```
 
 ### 2. 打开项目
 
-直接打开 `index.html` 文件，使用浏览器查看效果。请确保浏览器支持 WebGL 和摄像头访问。
+直接打开 `大庚剑阵.html` 文件，使用浏览器查看效果。请确保浏览器支持 WebGL 和摄像头访问。
 
 ### 3. 权限设置
 
