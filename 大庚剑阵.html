@@ -3,915 +3,202 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>御剑飞行 - 手势控制</title>
+    <title>大庚剑阵 - 御剑飞行</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            overflow: hidden;
-            background: #000;
-            font-family: 'Microsoft YaHei', sans-serif;
-        }
-
-        #canvas-container {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        #video-container {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            width: 200px;
-            height: 150px;
-            border: 2px solid rgba(0, 255, 100, 0.5);
-            border-radius: 10px;
-            overflow: hidden;
-            z-index: 100;
-            box-shadow: 0 0 20px rgba(0, 255, 100, 0.3);
-        }
-
-        #video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            transform: scaleX(-1);
-        }
-
-        #canvas-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            transform: scaleX(-1);
-            pointer-events: none;
-        }
-
-        #mode-display {
-            position: fixed;
-            top: 30px;
-            left: 50%;
-            transform: translateX(-50%);
-            color: #00ff64;
-            font-size: 24px;
-            text-shadow: 0 0 20px rgba(0, 255, 100, 0.8);
-            z-index: 100;
-            letter-spacing: 4px;
-            font-weight: bold;
-        }
-
-        #gesture-info {
-            position: fixed;
-            bottom: 20px;
-            left: 20px;
-            color: rgba(0, 255, 100, 0.7);
-            font-size: 14px;
-            z-index: 100;
-            line-height: 1.8;
-        }
-
-        .loading {
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            color: #00ff64;
-            font-size: 20px;
-            z-index: 1000;
-            text-shadow: 0 0 20px rgba(0, 255, 100, 0.8);
-        }
-
-        .loading.hidden {
-            display: none;
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { overflow: hidden; background: #000; font-family: 'Microsoft YaHei', sans-serif; }
+        #canvas-container { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; }
+        #video-container { position: fixed; bottom: 20px; right: 20px; width: 200px; height: 150px; border: 2px solid rgba(0,255,136,0.5); border-radius: 10px; overflow: hidden; z-index: 100; box-shadow: 0 0 20px rgba(0,255,136,0.3), 0 0 40px rgba(0,255,136,0.1), inset 0 0 15px rgba(0,255,136,0.1); }
+        #video { width: 100%; height: 100%; object-fit: cover; transform: scaleX(-1); }
+        #canvas-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; transform: scaleX(-1); pointer-events: none; }
+        #mode-display { position: fixed; top: 30px; left: 50%; transform: translateX(-50%); color: #00ff88; font-size: 28px; text-shadow: 0 0 10px rgba(0,255,136,0.9), 0 0 20px rgba(0,255,136,0.6), 0 0 40px rgba(0,255,136,0.3), 0 0 80px rgba(0,255,136,0.15); z-index: 100; letter-spacing: 8px; font-weight: bold; transition: all 0.5s ease; }
+        #gesture-info { position: fixed; bottom: 20px; left: 20px; color: rgba(0,255,136,0.5); font-size: 14px; z-index: 100; line-height: 2; text-shadow: 0 0 8px rgba(0,255,136,0.2); letter-spacing: 1px; }
+        .loading { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #00ff88; font-size: 20px; z-index: 1000; text-shadow: 0 0 20px rgba(0,255,136,0.8), 0 0 40px rgba(0,255,136,0.4); letter-spacing: 4px; animation: breathe 2s ease-in-out infinite; }
+        .loading.hidden { display: none; }
+        #flash-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: radial-gradient(circle, rgba(0,255,136,0.4) 0%, rgba(0,229,255,0.1) 40%, transparent 70%); opacity: 0; pointer-events: none; z-index: 50; transition: opacity 0.4s ease-out; }
+        @keyframes breathe { 0%,100%{opacity:0.6} 50%{opacity:1} }
     </style>
 </head>
 <body>
     <div id="canvas-container"></div>
-
+    <div id="flash-overlay"></div>
     <div id="video-container">
         <video id="video" autoplay playsinline></video>
         <canvas id="canvas-overlay"></canvas>
     </div>
-
-    <div id="mode-display">御剑待命</div>
-
+    <div id="mode-display">大庚剑阵</div>
     <div id="gesture-info">
-        ☝️ 一指 - 御剑飞行<br>
-        ✊ 握拳 - 剑阵归位<br>
-        🖐️ 五指 - 天女散剑<br>
-        🤟 三指 - 大庚剑阵
+        ✊ 握拳 · 剑阵归位<br>
+        ☝️ 一指 · 御剑飞行<br>
+        ✌️ 二指 · 大庚剑阵<br>
+        🤟 三指 · 无极剑涡<br>
+        🖖 四指 · 万剑归宗<br>
+        🖐️ 五指 · 天女散剑
     </div>
+    <div class="loading" id="loading">宝圣到此一游...</div>
 
-    <div class="loading" id="loading">正在初始化摄像头...</div>
-
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-        }
-    }
-    </script>
+    <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
 
     <script type="module">
-        import * as THREE from 'three';
-        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // ==================== 常量配置 ====================
-        const CONFIG = {
-            SWORD_COUNT: 500,
-            SPHERE_RADIUS: 8,
-            BOID_SEPARATION: 1.5,
-            BOID_ALIGNMENT: 0.8,
-            BOID_COHESION: 0.6,
-            MAX_SPEED: 0.15,
-            MAX_FORCE: 0.008,
-            TRANSITION_SPEED: 0.08,
-            FAST_TRANSITION_SPEED: 0.15,
-            BOUNDARY: 25,
-            STAR_COUNT: 300
-        };
+    const PALETTE = {
+        jade: new THREE.Color(0x00ff88), cyan: new THREE.Color(0x00e5ff),
+        gold: new THREE.Color(0xffd700), darkJade: new THREE.Color(0x004d40), white: new THREE.Color(0xffffff),
+    };
 
-        // ==================== 全局变量 ====================
-        let scene, camera, renderer, composer;
-        let swords = [];
-        let stars = [];
-        let currentMode = 'sphere'; // sphere, fly, scatter, rain
-        let targetMode = 'sphere';
-        let handPosition = new THREE.Vector3(0, 0, 0);
-        let handDirection = new THREE.Vector3(0, 0, 1);
-        let isTransitioning = false;
-        let transitionProgress = 0;
-        let cameraTarget = new THREE.Vector3(0, 0, 0);
-        let sphereRotation = 0;
-        let handDetected = false;
-        let handLandmarks = null;
-        let gestureType = 'none';
-        let previousGesture = 'none';
+    const CONFIG = {
+        SWORD_COUNT: 500, SPHERE_RADIUS: 8,
+        BOID_SEPARATION: 1.5, BOID_ALIGNMENT: 0.8, BOID_COHESION: 0.6, MAX_SPEED: 0.15, MAX_FORCE: 0.008,
+        TRANSITION_SPEED: 0.08, FAST_TRANSITION_SPEED: 0.15,
+        BOUNDARY: 25, STAR_COUNT: 600,
+        TRAIL_MAX: 5000, TRAIL_EMIT_INTERVAL: 4, TRAIL_LIFETIME: 45,
+        WEB_MAX_LINES: 200, WEB_MAX_DIST: 3.5, WEB_SAMPLE_STEP: 5,
+        ATMO_COUNT: 500,
+        SHOCKWAVE_DURATION: 1.5, SHOCKWAVE_MAX_RADIUS: 25,
+        BEAM_HEIGHT: 20, ORBIT_SPEED: 0.08, ORBIT_RADIUS: 12,
+        VORTEX_LAYERS: 8, VORTEX_HEIGHT: 16, VORTEX_MIN_R: 1.5, VORTEX_MAX_R: 9, VORTEX_TWIST: 3,
+        BOOM_THRESHOLDS: [0.03, 0.06, 0.10, 0.14],
+    };
 
-        // ==================== 飞剑类 ====================
-        class FlyingSword {
-            constructor(index, total) {
-                this.index = index;
-                this.mesh = this.createSwordMesh();
+    const DAGENG_RINGS = [
+        {count:60,radius:2.5,speed:1.0,dir:1},{count:80,radius:4.5,speed:0.65,dir:-1},
+        {count:100,radius:6.5,speed:0.4,dir:1},{count:120,radius:9.0,speed:0.25,dir:-1},
+        {count:140,radius:12.0,speed:0.15,dir:1},
+    ];
 
-                // Boid 属性
-                this.position = new THREE.Vector3();
-                this.velocity = new THREE.Vector3(
-                    (Math.random() - 0.5) * 0.1,
-                    (Math.random() - 0.5) * 0.1,
-                    (Math.random() - 0.5) * 0.1
-                );
-                this.acceleration = new THREE.Vector3();
+    let scene,camera,renderer,composer,swords=[];
+    let currentMode='sphere',targetMode='sphere';
+    let handPosition=new THREE.Vector3(0,0,0),handDirection=new THREE.Vector3(0,0,1);
+    let isTransitioning=false,transitionProgress=0,cameraTarget=new THREE.Vector3(0,0,0),sphereRotation=0;
+    let handDetected=false,handLandmarks=null,gestureType='none',previousGesture='none';
+    let trailSystem,energyWeb,coreOrbData,runeCircleGroups=[],atmosphericParticles,shockwaveData,starField;
+    let frameCount=0,coreVisibility=1,dagengContract=0,vortexPulse=0,lightBeamData=null;
+    let skyBaseColor=new THREE.Color(0x000a06),skyStormColor=new THREE.Color(0x000f05),skyWujiColor=new THREE.Color(0x05000a),skyGiantColor=new THREE.Color(0x0a0800),giantStartTime=0;
+    let prevFlySpeed=0;
 
-                // 目标属性（用于平滑过渡）
-                this.targetPosition = new THREE.Vector3();
-                this.targetRotation = new THREE.Euler();
-                this.targetScale = 1;
+    class TrailSystem{
+        constructor(m){this.max=m;this.head=0;this.positions=new Float32Array(m*3);this.alphas=new Float32Array(m);this.sizes=new Float32Array(m);this.colors=new Float32Array(m*3);this.lifetimes=new Float32Array(m);this.maxLifetimes=new Float32Array(m);this.velocities=new Float32Array(m*3);this.alphas.fill(0);this.lifetimes.fill(0);this.geometry=new THREE.BufferGeometry();this.geometry.setAttribute('position',new THREE.BufferAttribute(this.positions,3));this.geometry.setAttribute('aAlpha',new THREE.BufferAttribute(this.alphas,1));this.geometry.setAttribute('aSize',new THREE.BufferAttribute(this.sizes,1));this.geometry.setAttribute('aColor',new THREE.BufferAttribute(this.colors,3));this.material=new THREE.ShaderMaterial({vertexShader:'attribute float aAlpha;attribute float aSize;attribute vec3 aColor;varying float vAlpha;varying vec3 vColor;void main(){vAlpha=aAlpha;vColor=aColor;vec4 mv=modelViewMatrix*vec4(position,1.0);gl_PointSize=aSize*(250.0/-mv.z);gl_Position=projectionMatrix*mv;}',fragmentShader:'varying float vAlpha;varying vec3 vColor;void main(){float d=length(gl_PointCoord-vec2(0.5));if(d>0.5)discard;float glow=smoothstep(0.5,0.0,d);gl_FragColor=vec4(vColor,vAlpha*glow*glow);}',transparent:true,depthWrite:false,blending:THREE.AdditiveBlending,});this.points=new THREE.Points(this.geometry,this.material);}
+        emit(x,y,z,r,g,b,sz,lt){const i=this.head%this.max;this.positions[i*3]=x;this.positions[i*3+1]=y;this.positions[i*3+2]=z;this.colors[i*3]=r;this.colors[i*3+1]=g;this.colors[i*3+2]=b;this.alphas[i]=1;this.sizes[i]=sz;this.lifetimes[i]=lt;this.maxLifetimes[i]=lt;this.velocities[i*3]=(Math.random()-0.5)*0.008;this.velocities[i*3+1]=(Math.random()-0.5)*0.008+0.004;this.velocities[i*3+2]=(Math.random()-0.5)*0.008;this.head++;}
+        update(){for(let i=0;i<this.max;i++){if(this.lifetimes[i]<=0){this.alphas[i]=0;continue;}this.lifetimes[i]--;this.positions[i*3]+=this.velocities[i*3];this.positions[i*3+1]+=this.velocities[i*3+1];this.positions[i*3+2]+=this.velocities[i*3+2];const r=this.lifetimes[i]/this.maxLifetimes[i];this.alphas[i]=r*r;this.sizes[i]*=0.993;}this.geometry.attributes.position.needsUpdate=true;this.geometry.attributes.aAlpha.needsUpdate=true;this.geometry.attributes.aSize.needsUpdate=true;this.geometry.attributes.aColor.needsUpdate=true;}
+    }
 
-                // 球形分布初始化
-                this.sphereTheta = (index / total) * Math.PI * 20;
-                this.spherePhi = Math.acos(1 - 2 * (index + 0.5) / total);
-                this.sphereOffset = Math.random() * 0.5;
+    class EnergyWeb{
+        constructor(m){this.maxLines=m;this.opacity=0;const mv=m*2;this.posArr=new Float32Array(mv*3);this.colArr=new Float32Array(mv*3);this.geometry=new THREE.BufferGeometry();this.geometry.setAttribute('position',new THREE.BufferAttribute(this.posArr,3));this.geometry.setAttribute('color',new THREE.BufferAttribute(this.colArr,3));this.material=new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:1,blending:THREE.AdditiveBlending,depthWrite:false});this.lines=new THREE.LineSegments(this.geometry,this.material);}
+        update(sa,time){const to=(currentMode==='sphere')?0.5:(currentMode==='rain')?0.8:(currentMode==='wuji')?1.0:(currentMode==='giant')?0.6:0;this.opacity+=(to-this.opacity)*0.04;this.material.opacity=this.opacity;if(this.opacity<0.005){this.geometry.setDrawRange(0,0);return;}let c=0;const md=CONFIG.WEB_MAX_DIST,st=CONFIG.WEB_SAMPLE_STEP,pulse=Math.sin(time*2.5)*0.3+0.7;for(let i=0;i<sa.length&&c<this.maxLines;i+=st){for(let j=i+st;j<sa.length&&c<this.maxLines;j+=st){const dx=sa[i].position.x-sa[j].position.x,dy=sa[i].position.y-sa[j].position.y,dz=sa[i].position.z-sa[j].position.z,d=Math.sqrt(dx*dx+dy*dy+dz*dz);if(d<md&&d>0.4){const mul=(currentMode==='rain')?1.5:(currentMode==='wuji')?2.0:(currentMode==='giant')?1.8:1.0,b=(1-d/md)*pulse*mul,i6=c*6;this.posArr[i6]=sa[i].position.x;this.posArr[i6+1]=sa[i].position.y;this.posArr[i6+2]=sa[i].position.z;this.posArr[i6+3]=sa[j].position.x;this.posArr[i6+4]=sa[j].position.y;this.posArr[i6+5]=sa[j].position.z;this.colArr[i6]=0*b;this.colArr[i6+1]=1*b;this.colArr[i6+2]=0.53*b;this.colArr[i6+3]=0*b;this.colArr[i6+4]=1*b;this.colArr[i6+5]=0.53*b;c++;}}}this.geometry.setDrawRange(0,c*2);this.geometry.attributes.position.needsUpdate=true;this.geometry.attributes.color.needsUpdate=true;}
+    }
 
-                // 雨阵属性
-                this.rainLayer = Math.floor(Math.random() * 5);
-                this.rainOffset = new THREE.Vector3(
-                    (Math.random() - 0.5) * 30,
-                    Math.random() * 20 + 10,
-                    (Math.random() - 0.5) * 20 - 5
-                );
+    class FlyingSword{
+        constructor(index,total){
+            this.index=index;const t=index/total;this.swordColor=new THREE.Color();
+            if(t<0.55)this.swordColor.lerpColors(PALETTE.jade,PALETTE.cyan,t/0.55);else if(t<0.85)this.swordColor.lerpColors(PALETTE.cyan,PALETTE.jade,(t-0.55)/0.3);else this.swordColor.lerpColors(PALETTE.jade,PALETTE.gold,(t-0.85)/0.15);
+            this.mesh=this.createSwordMesh();this.position=new THREE.Vector3();this.velocity=new THREE.Vector3((Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1,(Math.random()-0.5)*0.1);this.acceleration=new THREE.Vector3();
+            this.targetPosition=new THREE.Vector3();this.targetRotation=new THREE.Euler();this.targetScale=1;
+            this.sphereTheta=(index/total)*Math.PI*20;this.spherePhi=Math.acos(1-2*(index+0.5)/total);this.sphereOffset=Math.random()*0.5;
+            this.rainLayer=Math.floor(Math.random()*5);this.rainOffset=new THREE.Vector3((Math.random()-0.5)*30,Math.random()*20+10,(Math.random()-0.5)*20-5);
+            this.dagengRing=0;this.dagengAngleInRing=0;let rs=0;
+            for(let r=0;r<DAGENG_RINGS.length;r++){if(index<rs+DAGENG_RINGS[r].count){this.dagengRing=r;this.dagengAngleInRing=((index-rs)/DAGENG_RINGS[r].count)*Math.PI*2;break;}rs+=DAGENG_RINGS[r].count;}
+            this._bladeMat=null;this._v1=new THREE.Vector3();this._v2=new THREE.Vector3();this._v3=new THREE.Vector3();
+            this.initSpherePosition();
+        }
+        createSwordMesh(){const g=new THREE.Group();const bm=new THREE.MeshBasicMaterial({color:this.swordColor,transparent:true,opacity:0.95});this._bladeMat=bm;const gc=this.swordColor.clone(),gm=new THREE.MeshBasicMaterial({color:gc,transparent:true,opacity:0.3}),cm=new THREE.MeshBasicMaterial({color:PALETTE.white,transparent:true,opacity:0.6});const bs=new THREE.Shape();bs.moveTo(0,0);bs.lineTo(0.1,0.4);bs.lineTo(0,2.2);bs.lineTo(-0.1,0.4);bs.closePath();const bg=new THREE.ExtrudeGeometry(bs,{depth:0.04,bevelEnabled:false});bg.translate(0,0,-0.02);g.add(new THREE.Mesh(bg,bm));g.add(new THREE.Mesh(new THREE.BoxGeometry(0.012,1.8,0.06),cm).translateY(1.1));const gs=new THREE.Shape();gs.moveTo(0,-0.1);gs.lineTo(0.16,0.4);gs.lineTo(0,2.35);gs.lineTo(-0.16,0.4);gs.closePath();const gg=new THREE.ExtrudeGeometry(gs,{depth:0.12,bevelEnabled:false});gg.translate(0,0,-0.06);g.add(new THREE.Mesh(gg,gm));const gm2=new THREE.MeshBasicMaterial({color:PALETTE.gold,transparent:true,opacity:0.8});const g2=new THREE.Mesh(new THREE.BoxGeometry(0.5,0.06,0.1),gm2);g2.position.set(0,0.02,0);g.add(g2);const hm=new THREE.MeshBasicMaterial({color:PALETTE.darkJade,transparent:true,opacity:0.9});g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.04,0.05,0.5,8),hm).translateY(-0.3));g.add(new THREE.Mesh(new THREE.SphereGeometry(0.07,8,8),gm2).translateY(-0.55));g.scale.set(0.5,0.5,0.5);return g;}
+        initSpherePosition(){const r=CONFIG.SPHERE_RADIUS+this.sphereOffset;this.position.setFromSphericalCoords(r,this.spherePhi,this.sphereTheta);this.targetPosition.copy(this.position);this.updateMesh();}
+        separate(as){const s=this._v1.set(0,0,0);let c=0;for(const o of as){if(o===this)continue;const d=this.position.distanceTo(o.position);if(d>0&&d<CONFIG.BOID_SEPARATION){const df=this._v2.subVectors(this.position,o.position);df.normalize().divideScalar(d);s.add(df);c++;}}if(c>0){s.divideScalar(c).normalize().multiplyScalar(CONFIG.MAX_SPEED).sub(this.velocity);s.clampLength(0,CONFIG.MAX_FORCE);}return s;}
+        align(as){const s=this._v2.set(0,0,0);let c=0;for(const o of as){if(o===this)continue;const d=this.position.distanceTo(o.position);if(d>0&&d<4){s.add(o.velocity);c++;}}if(c>0){s.divideScalar(c).normalize().multiplyScalar(CONFIG.MAX_SPEED);this._v1.subVectors(s,this.velocity);this._v1.clampLength(0,CONFIG.MAX_FORCE);return this._v1;}return this._v1.set(0,0,0);}
+        cohesion(as){const s=this._v2.set(0,0,0);let c=0;for(const o of as){if(o===this)continue;const d=this.position.distanceTo(o.position);if(d>0&&d<6){s.add(o.position);c++;}}if(c>0){s.divideScalar(c);return this.seek(s);}return this._v1.set(0,0,0);}
+        seek(t){this._v1.subVectors(t,this.position).normalize().multiplyScalar(CONFIG.MAX_SPEED);this._v2.subVectors(this._v1,this.velocity);this._v2.clampLength(0,CONFIG.MAX_FORCE);return this._v2;}
+        boundaries(){const s=this._v1.set(0,0,0);const m=3,b=CONFIG.BOUNDARY;if(this.position.x<-b+m)s.x=CONFIG.MAX_SPEED;else if(this.position.x>b-m)s.x=-CONFIG.MAX_SPEED;if(this.position.y<-b+m)s.y=CONFIG.MAX_SPEED;else if(this.position.y>b-m)s.y=-CONFIG.MAX_SPEED;if(this.position.z<-b+m)s.z=CONFIG.MAX_SPEED;else if(this.position.z>b-m)s.z=-CONFIG.MAX_SPEED;return s;}
+        flock(as,t){this.acceleration.add(this.separate(as).multiplyScalar(CONFIG.BOID_SEPARATION));this.acceleration.add(this.align(as).multiplyScalar(CONFIG.BOID_ALIGNMENT));this.acceleration.add(this.cohesion(as).multiplyScalar(CONFIG.BOID_COHESION));this.acceleration.add(this.seek(t).multiplyScalar(1.2));this.acceleration.add(this.boundaries().multiplyScalar(2));}
+        updateSphereMode(time){const r=CONFIG.SPHERE_RADIUS+this.sphereOffset+Math.sin(time*2+this.index)*0.3,t=this.sphereTheta+sphereRotation,p=this.spherePhi+Math.sin(time+this.index*0.1)*0.1;this.targetPosition.setFromSphericalCoords(r,p,t);this.lookAtDirection(this._v1.copy(this.targetPosition).negate());}
+        updateFlyMode(as,target){if(handDetected){const fwd=this._v1.copy(handDirection);if(fwd.lengthSq()>0.001)fwd.normalize();else fwd.set(0,0,-1);this._v2.copy(handPosition).addScaledVector(fwd,15-this.index/CONFIG.SWORD_COUNT*20);this.acceleration.add(this._v3.copy(this._v2).sub(this.position).multiplyScalar(0.08));}this.velocity.add(this.acceleration);this.velocity.clampLength(0,CONFIG.MAX_SPEED);this.targetPosition.add(this.velocity);this.acceleration.set(0,0,0);if(this.velocity.length()>0.01)this.lookAtDirection(this.velocity);if(this._bladeMat)this._bladeMat.color.lerp(this.velocity.length()/CONFIG.MAX_SPEED>0.3?PALETTE.white:PALETTE.jade,0.03);}
+        updateScatterMode(time){this._v1.copy(this.position).normalize();this.targetPosition.copy(this._v1).multiplyScalar(CONFIG.BOUNDARY*0.8);this.targetPosition.x+=Math.sin(time+this.index)*2;this.targetPosition.y+=Math.cos(time+this.index*0.7)*2;this.lookAtDirection(this._v1);}
+        updateDaGengMode(time){const ring=DAGENG_RINGS[this.dagengRing],cr=ring.radius*(1-dagengContract*0.25),a=this.dagengAngleInRing+time*ring.speed*ring.dir,mR=DAGENG_RINGS[DAGENG_RINGS.length-1].radius,dh=Math.sqrt(Math.max(0,mR*mR-ring.radius*ring.radius))*0.25;this.targetPosition.set(Math.cos(a)*cr,dh+Math.sin(time*1.5+this.dagengRing*1.2)*0.15,Math.sin(a)*cr);const ky=2.5-dagengContract*5;this._v1.set(-this.targetPosition.x,ky-this.targetPosition.y,-this.targetPosition.z);this.lookAtDirection(this._v1);this.targetScale=1;}
+        updateWujiMode(time){const tl=CONFIG.VORTEX_LAYERS,spl=Math.ceil(CONFIG.SWORD_COUNT/tl),layer=Math.min(Math.floor(this.index/spl),tl-1),pl=this.index%spl,lr=layer/(tl-1),y=-CONFIG.VORTEX_HEIGHT/2+layer*(CONFIG.VORTEX_HEIGHT/(tl-1)),rad=CONFIG.VORTEX_MIN_R+lr*(CONFIG.VORTEX_MAX_R-CONFIG.VORTEX_MIN_R);const ag=pl/spl*Math.PI*2+time*(0.5+lr*0.5)+lr*Math.PI*CONFIG.VORTEX_TWIST;this.targetPosition.set(Math.cos(ag)*rad*(1+vortexPulse*0.15),y,Math.sin(ag)*rad*(1+vortexPulse*0.15));this._v1.set(-this.targetPosition.x,0,-this.targetPosition.z).normalize();this._v2.set(0,-0.35,0);this.lookAtDirection(this._v1.add(this._v2));this.targetScale=1;}
+        updateGiantSwordMode(time){const t=this.index/CONFIG.SWORD_COUNT;let lx=0,ly=0,lz=0;if(t<0.75){const bp=t/0.75,yp=(1-bp)*12-2,wpRaw=Math.pow(bp,0.6)*0.48+0.02,wp=wpRaw<0.03?0:wpRaw,ca=this.index*0.33;lx=Math.cos(ca)*wp;ly=yp;lz=Math.sin(ca)*wp*0.06;this._v1.set(0,1,0);}else if(t<0.82){const gt=(t-0.75)/0.07,yp=-2-gt*0.5,sp=(gt<0.5?gt*2:(1-gt)*2)*3+0.3,sd=this.index%2*2-1;lx=sd*sp*0.5;ly=yp;lz=(this.index%7-3)*0.1;this._v1.set(sd*2,0.2,0);}else if(t<0.93){const ht=(t-0.82)/0.11,yp=-2.5-ht*2.5;lx=(this.index%11-5)*0.035;ly=yp;lz=(this.index%5-2)*0.05;this._v1.set(0,-1,0);}else{const pt=(t-0.93)/0.07,yp=-5-pt*1.2;lx=(this.index%7-3)*0.05;ly=yp;lz=(this.index%3-1)*0.04;this._v1.set(0,-1,0);}const ft=time*0.12,ox=Math.sin(ft)*8,oz=Math.sin(ft*2)*4,oy=Math.sin(ft*0.5)*2;this.targetPosition.set(lx+ox,ly+oy+1,lz+oz);this.lookAtDirection(this._v1);this.targetScale=1;}
+        lookAtDirection(d){if(d.length()<0.001)return;const q=new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0,1,0),d.clone().normalize());this.targetRotation.setFromQuaternion(q);}
+        updateMesh(){const l=currentMode==='giant'?0.015:(isTransitioning?CONFIG.FAST_TRANSITION_SPEED:CONFIG.TRANSITION_SPEED);this.mesh.position.lerp(this.targetPosition,l);this.position.copy(this.mesh.position);this.mesh.rotation.x+=(this.targetRotation.x-this.mesh.rotation.x)*l;this.mesh.rotation.y+=(this.targetRotation.y-this.mesh.rotation.y)*l;this.mesh.rotation.z+=(this.targetRotation.z-this.mesh.rotation.z)*l;const cs=this.mesh.scale.x;this.mesh.scale.set(cs+(this.targetScale-cs)*l,cs+(this.targetScale-cs)*l,cs+(this.targetScale-cs)*l);}
+        getTipWorld(){this._v1.set(0,1.1,0);this.mesh.localToWorld(this._v1);return this._v1;}
+    }
 
-                // 初始化位置
-                this.initSpherePosition();
-            }
+    function initScene(){
+        scene=new THREE.Scene();scene.background=new THREE.Color(0x000a06);scene.fog=new THREE.FogExp2(0x000a06,0.012);
+        camera=new THREE.PerspectiveCamera(60,window.innerWidth/window.innerHeight,0.1,1000);camera.position.set(0,0,25);
+        renderer=new THREE.WebGLRenderer({antialias:true});renderer.setSize(window.innerWidth,window.innerHeight);renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+        composer=new EffectComposer(renderer);composer.addPass(new RenderPass(scene,camera));
+        composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth,window.innerHeight),1.8,0.6,0.65));
+        for(let i=0;i<CONFIG.SWORD_COUNT;i++){const s=new FlyingSword(i,CONFIG.SWORD_COUNT);swords.push(s);scene.add(s.mesh);}
+        trailSystem=new TrailSystem(CONFIG.TRAIL_MAX);scene.add(trailSystem.points);
+        energyWeb=new EnergyWeb(CONFIG.WEB_MAX_LINES);scene.add(energyWeb.lines);
+        createCoreOrb();createRuneCircles();createAtmosphericParticles();createShockwave();createStarField();createLightBeam();
+        window.addEventListener('resize',onWindowResize);
+    }
+    function createCoreOrb(){const g=new THREE.Group();const im=new THREE.MeshBasicMaterial({color:PALETTE.white,transparent:true,opacity:0.8});g.add(new THREE.Mesh(new THREE.SphereGeometry(0.3,32,32),im));const om=new THREE.MeshBasicMaterial({color:PALETTE.jade,transparent:true,opacity:0.25,blending:THREE.AdditiveBlending,depthWrite:false});g.add(new THREE.Mesh(new THREE.SphereGeometry(0.7,32,32),om));g.add(new THREE.PointLight(0x00ff88,2,25));scene.add(g);coreOrbData={group:g,inner:g.children[0],outer:g.children[1],light:g.children[2],innerMat:im,outerMat:om};}
+    function createRuneCircles(){const cfgs=[{r:3.5,tube:0.018,c:PALETTE.jade,op:0.22,sp:0.35,tilt:0,mc:8},{r:5,tube:0.022,c:PALETTE.cyan,op:0.18,sp:-0.22,tilt:0.06,mc:10},{r:6.5,tube:0.016,c:PALETTE.jade,op:0.15,sp:0.16,tilt:-0.04,mc:12},{r:8,tube:0.02,c:PALETTE.gold,op:0.1,sp:-0.1,tilt:0.05,mc:14},{r:10,tube:0.014,c:PALETTE.cyan,op:0.08,sp:0.07,tilt:-0.03,mc:16}];for(const c of cfgs){const rg=new THREE.Group();const tm=new THREE.MeshBasicMaterial({color:c.c,transparent:true,opacity:c.op,blending:THREE.AdditiveBlending,depthWrite:false});rg.add(new THREE.Mesh(new THREE.TorusGeometry(c.r,c.tube,8,128),tm));rg.add(new THREE.Mesh(new THREE.TorusGeometry(c.r,c.tube*2.5,8,128),new THREE.MeshBasicMaterial({color:c.c,transparent:true,opacity:c.op*0.3,blending:THREE.AdditiveBlending,depthWrite:false})));const mkrs=[];for(let m=0;m<c.mc;m++){const a=m/c.mc*Math.PI*2,mm=new THREE.MeshBasicMaterial({color:c.c,transparent:true,opacity:c.op*2,blending:THREE.AdditiveBlending,depthWrite:false}),mk=new THREE.Mesh(new THREE.OctahedronGeometry(0.06,0),mm);mk.position.set(Math.cos(a)*c.r,Math.sin(a)*c.r,0);rg.add(mk);mkrs.push(mk);}rg.rotation.x=Math.PI/2+c.tilt;rg.userData={speed:c.sp,baseOpacity:c.op,markers:mkrs,torusMat:tm};scene.add(rg);runeCircleGroups.push(rg);}}
+    function createAtmosphericParticles(){const c=CONFIG.ATMO_COUNT,p=new Float32Array(c*3),cl=new Float32Array(c*3);for(let i=0;i<c;i++){p[i*3]=(Math.random()-0.5)*60;p[i*3+1]=(Math.random()-0.5)*60;p[i*3+2]=(Math.random()-0.5)*60;const r=Math.random();if(r<0.15){cl[i*3]=1;cl[i*3+1]=0.84;cl[i*3+2]=0;}else if(r<0.5){cl[i*3]=0;cl[i*3+1]=0.9;cl[i*3+2]=1;}else{cl[i*3]=0;cl[i*3+1]=1;cl[i*3+2]=0.53;}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(p,3));geo.setAttribute('color',new THREE.BufferAttribute(cl,3));atmosphericParticles=new THREE.Points(geo,new THREE.PointsMaterial({size:0.1,transparent:true,opacity:0.18,vertexColors:true,sizeAttenuation:true,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(atmosphericParticles);}
+    function createShockwave(){const m=new THREE.Mesh(new THREE.TorusGeometry(1,0.4,8,64),new THREE.MeshBasicMaterial({color:PALETTE.jade,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false}));m.rotation.x=Math.PI/2;m.visible=false;scene.add(m);shockwaveData={mesh:m,mat:m.material,active:false,progress:0};}
+    function triggerShockwave(){shockwaveData.active=true;shockwaveData.progress=0;shockwaveData.mesh.visible=true;shockwaveData.mesh.scale.set(0.1,0.1,0.1);}
+    function createStarField(){const c=CONFIG.STAR_COUNT,p=new Float32Array(c*3),cl=new Float32Array(c*3);for(let i=0;i<c;i++){p[i*3]=(Math.random()-0.5)*200;p[i*3+1]=(Math.random()-0.5)*200;p[i*3+2]=(Math.random()-0.5)*200;const r=Math.random();if(r<0.65){const v=0.7+Math.random()*0.3;cl[i*3]=v;cl[i*3+1]=v;cl[i*3+2]=v;}else if(r<0.82){cl[i*3]=0.2;cl[i*3+1]=0.85;cl[i*3+2]=1;}else{cl[i*3]=0;cl[i*3+1]=1;cl[i*3+2]=0.53;}}const geo=new THREE.BufferGeometry();geo.setAttribute('position',new THREE.BufferAttribute(p,3));geo.setAttribute('color',new THREE.BufferAttribute(cl,3));starField=new THREE.Points(geo,new THREE.PointsMaterial({size:0.25,transparent:true,opacity:0.55,vertexColors:true,sizeAttenuation:true,blending:THREE.AdditiveBlending,depthWrite:false}));scene.add(starField);}
+    function createLightBeam(){const g=new THREE.Group();const bm=new THREE.MeshBasicMaterial({color:PALETTE.jade,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.35,CONFIG.BEAM_HEIGHT,16,1,true),bm).translateY(CONFIG.BEAM_HEIGHT/2));const cm=new THREE.MeshBasicMaterial({color:PALETTE.white,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});g.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03,0.08,CONFIG.BEAM_HEIGHT,8,1,true),cm).translateY(CONFIG.BEAM_HEIGHT/2));const rm=new THREE.MeshBasicMaterial({color:PALETTE.cyan,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});const gr=new THREE.Mesh(new THREE.TorusGeometry(0.5,0.08,8,32),rm);gr.position.y=CONFIG.BEAM_HEIGHT;gr.rotation.x=Math.PI/2;g.add(gr);const bam=new THREE.MeshBasicMaterial({color:PALETTE.jade,transparent:true,opacity:0,blending:THREE.AdditiveBlending,depthWrite:false,side:THREE.DoubleSide});const br=new THREE.Mesh(new THREE.TorusGeometry(0.8,0.04,8,32),bam);br.position.y=0.3;br.rotation.x=Math.PI/2;g.add(br);scene.add(g);lightBeamData={group:g,beamMat:bm,coreMat:cm,ringMat:rm,glowRing:gr,baseMat:bam,baseRing:br};}
+    function onWindowResize(){camera.aspect=window.innerWidth/window.innerHeight;camera.updateProjectionMatrix();renderer.setSize(window.innerWidth,window.innerHeight);composer.setSize(window.innerWidth,window.innerHeight);}
 
-            createSwordMesh() {
-                const group = new THREE.Group();
+    async function initHandTracking(){const v=document.getElementById('video'),c=document.getElementById('canvas-overlay'),ctx=c.getContext('2d');try{const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});v.srcObject=s;await new Promise(r=>{v.onloadedmetadata=()=>{c.width=v.videoWidth;c.height=v.videoHeight;r();};});document.getElementById('loading').classList.add('hidden');const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.5});hands.onResults(r=>{ctx.clearRect(0,0,c.width,c.height);if(r.multiHandLandmarks&&r.multiHandLandmarks.length>0){handDetected=true;handLandmarks=r.multiHandLandmarks[0];drawHand(ctx,handLandmarks,c.width,c.height);recognizeGesture(handLandmarks);updateHandDirection(handLandmarks);}else{handDetected=false;gestureType='none';}});const df=async()=>{await hands.send({image:v});requestAnimationFrame(df);};v.onloadeddata=()=>{df();};}catch(e){console.error(e);document.getElementById('loading').textContent='摄像头初始化失败，请检查权限';}}
+    function drawHand(ctx,l,w,h){ctx.fillStyle='#00ff88';ctx.strokeStyle='#00ff88';ctx.lineWidth=2;const cs=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];ctx.beginPath();for(const[i,j]of cs){ctx.moveTo(l[i].x*w,l[i].y*h);ctx.lineTo(l[j].x*w,l[j].y*h);}ctx.stroke();for(const p of l){ctx.beginPath();ctx.arc(p.x*w,p.y*h,4,0,Math.PI*2);ctx.fill();}}
+    function recognizeGesture(l){const f=getFingerStates(l),fc=f.filter(f=>f).length,ps=getPalmSize(l);previousGesture=gestureType;if(fc===1&&f[1]){gestureType='point';targetMode='fly';document.getElementById('mode-display').textContent='御剑飞行';}else if(fc===0&&ps>0.08){gestureType='fist';targetMode='sphere';document.getElementById('mode-display').textContent='剑阵归位';}else if(fc===5){gestureType='open';targetMode='scatter';document.getElementById('mode-display').textContent='天女散剑';}else if(fc===4&&f[1]&&f[2]&&f[3]){gestureType='four';targetMode='giant';document.getElementById('mode-display').textContent='万剑归宗';}else if(fc===3&&f[1]&&f[2]){gestureType='three';targetMode='wuji';document.getElementById('mode-display').textContent='无极剑涡';}else if(fc===2&&f[1]&&f[2]){gestureType='two';targetMode='rain';document.getElementById('mode-display').textContent='大庚剑阵';}if(previousGesture!==gestureType&&gestureType!=='none'){isTransitioning=true;transitionProgress=0;triggerShockwave();}}
+    function getFingerStates(l){const f=[];f.push(l[4].x<l[3].x);const ts=[8,12,16,20],ps=[6,10,14,18];for(let i=0;i<4;i++)f.push(l[ts[i]].y<l[ps[i]].y-0.02);return f;}
+    function getPalmSize(l){const w=l[0],m=l[9];return Math.sqrt((w.x-m.x)**2+(w.y-m.y)**2);}
+    function updateHandDirection(l){handDirection.set((l[8].x-0.5)*2*15,-(l[8].y-0.5)*2*15,-10);handPosition.set((l[9].x-0.5)*30,-(l[9].y-0.5)*30,0);}
 
-                // 剑刃材质 - 荧光绿
-                const bladeMaterial = new THREE.MeshBasicMaterial({
-                    color: 0x00ff64,
-                    transparent: true,
-                    opacity: 0.9
-                });
-
-                const glowMaterial = new THREE.MeshBasicMaterial({
-                    color: 0x00ff64,
-                    transparent: true,
-                    opacity: 0.4
-                });
-
-                // 剑刃 - 细长菱形
-                const bladeShape = new THREE.Shape();
-                bladeShape.moveTo(0, 0);
-                bladeShape.lineTo(0.08, 0.5);
-                bladeShape.lineTo(0, 2.0);
-                bladeShape.lineTo(-0.08, 0.5);
-                bladeShape.closePath();
-
-                const bladeGeometry = new THREE.ExtrudeGeometry(bladeShape, {
-                    depth: 0.04,
-                    bevelEnabled: false
-                });
-                bladeGeometry.translate(0, 0, -0.02);
-                const blade = new THREE.Mesh(bladeGeometry, bladeMaterial);
-                group.add(blade);
-
-                // 剑刃光晕
-                const glowGeometry = new THREE.ExtrudeGeometry(bladeShape, {
-                    depth: 0.1,
-                    bevelEnabled: false
-                });
-                glowGeometry.scale(1.3, 1.1, 1);
-                glowGeometry.translate(0, -0.1, -0.05);
-                const glow = new THREE.Mesh(glowGeometry, glowMaterial);
-                group.add(glow);
-
-                // 护手 - 横向小条
-                const guardGeometry = new THREE.BoxGeometry(0.4, 0.08, 0.08);
-                const guard = new THREE.Mesh(guardGeometry, bladeMaterial);
-                guard.position.set(0, 0, 0);
-                group.add(guard);
-
-                // 剑柄
-                const handleGeometry = new THREE.CylinderGeometry(0.04, 0.05, 0.5, 8);
-                const handle = new THREE.Mesh(handleGeometry, bladeMaterial);
-                handle.position.set(0, -0.3, 0);
-                group.add(handle);
-
-                // 剑柄末端
-                const pommelGeometry = new THREE.SphereGeometry(0.06, 8, 8);
-                const pommel = new THREE.Mesh(pommelGeometry, bladeMaterial);
-                pommel.position.set(0, -0.55, 0);
-                group.add(pommel);
-
-                // 整体缩放
-                group.scale.set(0.5, 0.5, 0.5);
-
-                return group;
-            }
-
-            initSpherePosition() {
-                const radius = CONFIG.SPHERE_RADIUS + this.sphereOffset;
-                this.position.setFromSphericalCoords(
-                    radius,
-                    this.spherePhi,
-                    this.sphereTheta
-                );
-                this.targetPosition.copy(this.position);
-                this.updateMesh();
-            }
-
-            // Boid 分离行为
-            separate(swords) {
-                const steer = new THREE.Vector3();
-                let count = 0;
-
-                for (const other of swords) {
-                    if (other === this) continue;
-                    const d = this.position.distanceTo(other.position);
-                    if (d > 0 && d < CONFIG.BOID_SEPARATION) {
-                        const diff = new THREE.Vector3().subVectors(this.position, other.position);
-                        diff.normalize();
-                        diff.divideScalar(d);
-                        steer.add(diff);
-                        count++;
-                    }
-                }
-
-                if (count > 0) {
-                    steer.divideScalar(count);
-                    steer.normalize();
-                    steer.multiplyScalar(CONFIG.MAX_SPEED);
-                    steer.sub(this.velocity);
-                    steer.clampLength(0, CONFIG.MAX_FORCE);
-                }
-
-                return steer;
-            }
-
-            // Boid 对齐行为
-            align(swords) {
-                const sum = new THREE.Vector3();
-                let count = 0;
-                const neighborDist = 4;
-
-                for (const other of swords) {
-                    if (other === this) continue;
-                    const d = this.position.distanceTo(other.position);
-                    if (d > 0 && d < neighborDist) {
-                        sum.add(other.velocity);
-                        count++;
-                    }
-                }
-
-                if (count > 0) {
-                    sum.divideScalar(count);
-                    sum.normalize();
-                    sum.multiplyScalar(CONFIG.MAX_SPEED);
-                    const steer = new THREE.Vector3().subVectors(sum, this.velocity);
-                    steer.clampLength(0, CONFIG.MAX_FORCE);
-                    return steer;
-                }
-
-                return new THREE.Vector3();
-            }
-
-            // Boid 聚合行为
-            cohesion(swords) {
-                const sum = new THREE.Vector3();
-                let count = 0;
-                const neighborDist = 6;
-
-                for (const other of swords) {
-                    if (other === this) continue;
-                    const d = this.position.distanceTo(other.position);
-                    if (d > 0 && d < neighborDist) {
-                        sum.add(other.position);
-                        count++;
-                    }
-                }
-
-                if (count > 0) {
-                    sum.divideScalar(count);
-                    return this.seek(sum);
-                }
-
-                return new THREE.Vector3();
-            }
-
-            // 寻找目标
-            seek(target) {
-                const desired = new THREE.Vector3().subVectors(target, this.position);
-                desired.normalize();
-                desired.multiplyScalar(CONFIG.MAX_SPEED);
-                const steer = new THREE.Vector3().subVectors(desired, this.velocity);
-                steer.clampLength(0, CONFIG.MAX_FORCE);
-                return steer;
-            }
-
-            // 边界约束
-            boundaries() {
-                const steer = new THREE.Vector3();
-                const margin = 3;
-                const boundary = CONFIG.BOUNDARY;
-
-                if (this.position.x < -boundary + margin) {
-                    steer.x = CONFIG.MAX_SPEED;
-                } else if (this.position.x > boundary - margin) {
-                    steer.x = -CONFIG.MAX_SPEED;
-                }
-
-                if (this.position.y < -boundary + margin) {
-                    steer.y = CONFIG.MAX_SPEED;
-                } else if (this.position.y > boundary - margin) {
-                    steer.y = -CONFIG.MAX_SPEED;
-                }
-
-                if (this.position.z < -boundary + margin) {
-                    steer.z = CONFIG.MAX_SPEED;
-                } else if (this.position.z > boundary - margin) {
-                    steer.z = -CONFIG.MAX_SPEED;
-                }
-
-                return steer;
-            }
-
-            // 应用 Boid 行为
-            flock(swords, target) {
-                const sep = this.separate(swords).multiplyScalar(CONFIG.BOID_SEPARATION);
-                const ali = this.align(swords).multiplyScalar(CONFIG.BOID_ALIGNMENT);
-                const coh = this.cohesion(swords).multiplyScalar(CONFIG.BOID_COHESION);
-                const seek = this.seek(target).multiplyScalar(1.2);
-                const bound = this.boundaries().multiplyScalar(2);
-
-                this.acceleration.add(sep);
-                this.acceleration.add(ali);
-                this.acceleration.add(coh);
-                this.acceleration.add(seek);
-                this.acceleration.add(bound);
-            }
-
-            // 更新球形模式
-            updateSphereMode(time) {
-                const radius = CONFIG.SPHERE_RADIUS + this.sphereOffset + Math.sin(time * 2 + this.index) * 0.3;
-                const theta = this.sphereTheta + sphereRotation;
-                const phi = this.spherePhi + Math.sin(time + this.index * 0.1) * 0.1;
-
-                this.targetPosition.setFromSphericalCoords(radius, phi, theta);
-
-                // 剑尖指向球心（向内）
-                const toCenter = new THREE.Vector3().subVectors(new THREE.Vector3(0, 0, 0), this.targetPosition);
-                this.lookAtDirection(toCenter);
-            }
-
-            // 更新飞行模式
-            updateFlyMode(swords, target) {
-                this.flock(swords, target);
-
-                this.velocity.add(this.acceleration);
-                this.velocity.clampLength(0, CONFIG.MAX_SPEED);
-                this.targetPosition.add(this.velocity);
-                this.acceleration.set(0, 0, 0);
-
-                // 剑尖指向飞行方向
-                if (this.velocity.length() > 0.01) {
-                    this.lookAtDirection(this.velocity);
-                }
-            }
-
-            // 更新散开模式
-            updateScatterMode(time) {
-                const direction = new THREE.Vector3().copy(this.position).normalize();
-                const targetDist = CONFIG.BOUNDARY * 0.8;
-
-                this.targetPosition.copy(direction).multiplyScalar(targetDist);
-                this.targetPosition.x += Math.sin(time + this.index) * 2;
-                this.targetPosition.y += Math.cos(time + this.index * 0.7) * 2;
-
-                // 剑尖指向外
-                this.lookAtDirection(direction);
-            }
-
-            // 更新剑雨模式
-            updateRainMode(time) {
-                const layerZ = -10 + this.rainLayer * 5;
-
-                this.targetPosition.set(
-                    this.rainOffset.x + Math.sin(time * 0.5 + this.index) * 0.5,
-                    this.rainOffset.y - (time * 0.02 + this.index * 0.01) % 30,
-                    layerZ
-                );
-
-                // 重置位置（循环下落）
-                if (this.targetPosition.y < -15) {
-                    this.rainOffset.y = 20 + Math.random() * 10;
-                    this.rainOffset.x = (Math.random() - 0.5) * 30;
-                }
-
-                // 剑尖向下
-                this.lookAtDirection(new THREE.Vector3(0, -1, 0));
-
-                // 远近缩放
-                this.targetScale = 0.8 + (this.rainLayer / 5) * 0.5;
-            }
-
-            // 让剑指向某个方向
-            lookAtDirection(direction) {
-                if (direction.length() < 0.001) return;
-
-                const dir = direction.clone().normalize();
-                // 剑的默认方向是Y轴正方向，需要旋转到目标方向
-                const up = new THREE.Vector3(0, 1, 0);
-                const quaternion = new THREE.Quaternion();
-                quaternion.setFromUnitVectors(up, dir);
-
-                const euler = new THREE.Euler().setFromQuaternion(quaternion);
-                this.targetRotation.copy(euler);
-            }
-
-            // 更新网格位置（平滑插值）
-            updateMesh() {
-                const lerpSpeed = isTransitioning ? CONFIG.FAST_TRANSITION_SPEED : CONFIG.TRANSITION_SPEED;
-
-                // 位置插值
-                this.mesh.position.lerp(this.targetPosition, lerpSpeed);
-                this.position.copy(this.mesh.position);
-
-                // 旋转插值
-                this.mesh.rotation.x += (this.targetRotation.x - this.mesh.rotation.x) * lerpSpeed;
-                this.mesh.rotation.y += (this.targetRotation.y - this.mesh.rotation.y) * lerpSpeed;
-                this.mesh.rotation.z += (this.targetRotation.z - this.mesh.rotation.z) * lerpSpeed;
-
-                // 缩放插值
-                const currentScale = this.mesh.scale.x;
-                const newScale = currentScale + (this.targetScale - currentScale) * lerpSpeed;
-                this.mesh.scale.set(newScale, newScale, newScale);
+    let time=0;
+    function animate(){
+        requestAnimationFrame(animate);time+=0.016;sphereRotation+=0.005;frameCount++;
+        if(isTransitioning){transitionProgress+=0.02;if(transitionProgress>=1){isTransitioning=false;currentMode=targetMode;if(currentMode==='giant')giantStartTime=time;}}else{currentMode=targetMode;}
+        if(currentMode==='rain'){const r=Math.pow(Math.max(0,Math.sin(time*0.4)),3);dagengContract+=(r-dagengContract)*0.08;}else dagengContract*=0.95;
+        if(currentMode==='wuji'){vortexPulse+=(Math.sin(time*0.6)*0.5+0.5-vortexPulse)*0.08;}else vortexPulse*=0.95;
+        const ft=handDirection.clone();
+        for(const s of swords){
+            switch(currentMode){
+                case'sphere':s.updateSphereMode(time);s.targetScale=1;break;
+                case'fly':s.updateFlyMode(swords,ft);s.targetScale=1;break;
+                case'scatter':s.updateScatterMode(time);s.targetScale=0.8;break;
+                case'rain':s.updateDaGengMode(time);break;
+                case'wuji':s.updateWujiMode(time);break;
+                case'giant':s.updateGiantSwordMode(time);s.targetScale=1;break;
+            }s.updateMesh();
+        }
+        for(const s of swords){
+            if(frameCount%CONFIG.TRAIL_EMIT_INTERVAL===s.index%CONFIG.TRAIL_EMIT_INTERVAL){
+                const tip=s.getTipWorld(),c=s.swordColor,spd=s.velocity.length();
+                const wb=(currentMode==='wuji')?2.5:(currentMode==='giant')?1.2:1,fb=(currentMode==='fly')?(1+Math.pow(spd/CONFIG.MAX_SPEED,2)*0.25):1;
+                const sz=(0.2+spd*3)*wb*fb,lt=(CONFIG.TRAIL_LIFETIME+Math.floor(spd*200))*wb*(1+(fb-1)*0.3);
+                const tc=currentMode==='fly'?c.clone().lerp(PALETTE.white,Math.min(spd/CONFIG.MAX_SPEED*0.3,0.3)):currentMode==='giant'?c.clone().lerp(PALETTE.gold,0.2):c;
+                trailSystem.emit(tip.x,tip.y,tip.z,tc.r,tc.g,tc.b,sz,lt);
             }
         }
-
-        // ==================== 场景初始化 ====================
-        function initScene() {
-            // 场景
-            scene = new THREE.Scene();
-            scene.background = new THREE.Color(0x000000);
-            scene.fog = new THREE.FogExp2(0x000000, 0.015);
-
-            // 相机
-            camera = new THREE.PerspectiveCamera(
-                60,
-                window.innerWidth / window.innerHeight,
-                0.1,
-                1000
-            );
-            camera.position.set(0, 0, 25);
-
-            // 渲染器
-            renderer = new THREE.WebGLRenderer({ antialias: true });
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-            document.getElementById('canvas-container').appendChild(renderer.domElement);
-
-            // 后处理 - Bloom效果
-            composer = new EffectComposer(renderer);
-            const renderPass = new RenderPass(scene, camera);
-            composer.addPass(renderPass);
-
-            const bloomPass = new UnrealBloomPass(
-                new THREE.Vector2(window.innerWidth, window.innerHeight),
-                1.5,  // strength
-                0.4,  // radius
-                0.85  // threshold
-            );
-            composer.addPass(bloomPass);
-
-            // 创建飞剑
-            for (let i = 0; i < CONFIG.SWORD_COUNT; i++) {
-                const sword = new FlyingSword(i, CONFIG.SWORD_COUNT);
-                swords.push(sword);
-                scene.add(sword.mesh);
-            }
-
-            // 创建星空
-            createStars();
-
-            // 窗口大小调整
-            window.addEventListener('resize', onWindowResize);
-        }
-
-        // 创建星空背景
-        function createStars() {
-            const geometry = new THREE.BufferGeometry();
-            const positions = [];
-            const sizes = [];
-
-            for (let i = 0; i < CONFIG.STAR_COUNT; i++) {
-                const x = (Math.random() - 0.5) * 200;
-                const y = (Math.random() - 0.5) * 200;
-                const z = (Math.random() - 0.5) * 200;
-                positions.push(x, y, z);
-                sizes.push(Math.random() * 2 + 0.5);
-            }
-
-            geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
-            geometry.setAttribute('size', new THREE.Float32BufferAttribute(sizes, 1));
-
-            const material = new THREE.PointsMaterial({
-                color: 0xffffff,
-                size: 0.3,
-                transparent: true,
-                opacity: 0.6,
-                sizeAttenuation: true
-            });
-
-            const starField = new THREE.Points(geometry, material);
-            scene.add(starField);
-            stars.push(starField);
-        }
-
-        function onWindowResize() {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        }
-
-        // ==================== 手势识别 ====================
-        async function initHandTracking() {
-            const video = document.getElementById('video');
-            const canvas = document.getElementById('canvas-overlay');
-            const ctx = canvas.getContext('2d');
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480 }
-                });
-                video.srcObject = stream;
-
-                await new Promise(resolve => {
-                    video.onloadedmetadata = () => {
-                        canvas.width = video.videoWidth;
-                        canvas.height = video.videoHeight;
-                        resolve();
-                    };
-                });
-
-                document.getElementById('loading').classList.add('hidden');
-
-                // 初始化 MediaPipe Hands
-                const hands = new Hands({
-                    locateFile: (file) => {
-                        return `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`;
-                    }
-                });
-
-                hands.setOptions({
-                    maxNumHands: 1,
-                    modelComplexity: 1,
-                    minDetectionConfidence: 0.7,
-                    minTrackingConfidence: 0.5
-                });
-
-                hands.onResults((results) => {
-                    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-                    if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
-                        handDetected = true;
-                        handLandmarks = results.multiHandLandmarks[0];
-
-                        // 绘制手部关键点
-                        drawHand(ctx, handLandmarks, canvas.width, canvas.height);
-
-                        // 识别手势
-                        recognizeGesture(handLandmarks);
-
-                        // 更新手的方向
-                        updateHandDirection(handLandmarks);
-                    } else {
-                        handDetected = false;
-                        gestureType = 'none';
-                    }
-                });
-
-                // 开始检测
-                const detectFrame = async () => {
-                    await hands.send({ image: video });
-                    requestAnimationFrame(detectFrame);
-                };
-
-                video.onloadeddata = () => {
-                    detectFrame();
-                };
-
-            } catch (error) {
-                console.error('摄像头初始化失败:', error);
-                document.getElementById('loading').textContent = '摄像头初始化失败，请检查权限';
-            }
-        }
-
-        // 绘制手部关键点
-        function drawHand(ctx, landmarks, width, height) {
-            ctx.fillStyle = '#00ff64';
-            ctx.strokeStyle = '#00ff64';
-            ctx.lineWidth = 2;
-
-            // 连接线
-            const connections = [
-                [0, 1], [1, 2], [2, 3], [3, 4],
-                [0, 5], [5, 6], [6, 7], [7, 8],
-                [0, 9], [9, 10], [10, 11], [11, 12],
-                [0, 13], [13, 14], [14, 15], [15, 16],
-                [0, 17], [17, 18], [18, 19], [19, 20],
-                [5, 9], [9, 13], [13, 17]
-            ];
-
-            ctx.beginPath();
-            for (const [i, j] of connections) {
-                const x1 = landmarks[i].x * width;
-                const y1 = landmarks[i].y * height;
-                const x2 = landmarks[j].x * width;
-                const y2 = landmarks[j].y * height;
-                ctx.moveTo(x1, y1);
-                ctx.lineTo(x2, y2);
-            }
-            ctx.stroke();
-
-            // 关键点
-            for (const point of landmarks) {
-                ctx.beginPath();
-                ctx.arc(point.x * width, point.y * height, 4, 0, Math.PI * 2);
-                ctx.fill();
-            }
-        }
-
-        // 手势识别
-        function recognizeGesture(landmarks) {
-            // 获取手指状态
-            const fingers = getFingerStates(landmarks);
-            const fingerCount = fingers.filter(f => f).length;
-
-            // 计算手掌大小（用于判断远近）
-            const palmSize = getPalmSize(landmarks);
-
-            previousGesture = gestureType;
-
-            // 一指 - 食指伸出
-            if (fingerCount === 1 && fingers[1]) {
-                gestureType = 'point';
-                targetMode = 'fly';
-                document.getElementById('mode-display').textContent = '御剑飞行';
-            }
-            // 握拳
-            else if (fingerCount === 0 && palmSize > 0.08) {
-                gestureType = 'fist';
-                targetMode = 'sphere';
-                document.getElementById('mode-display').textContent = '剑阵归位';
-            }
-            // 五指张开
-            else if (fingerCount === 5) {
-                gestureType = 'open';
-                targetMode = 'scatter';
-                document.getElementById('mode-display').textContent = '天女散剑';
-            }
-            // 三指（食指、中指、无名指 或 食指、中指、小指）
-            else if (fingerCount === 3 && fingers[1] && fingers[2]) {
-                gestureType = 'three';
-                targetMode = 'rain';
-                document.getElementById('mode-display').textContent = '大庚剑阵';
-            }
-            else {
-                // 保持当前状态
-            }
-
-            // 检测模式变化，触发快速过渡
-            if (previousGesture !== gestureType && gestureType !== 'none') {
-                isTransitioning = true;
-                transitionProgress = 0;
-            }
-        }
-
-        // 获取手指状态
-        function getFingerStates(landmarks) {
-            const fingers = [];
-
-            // 拇指
-            const thumbTip = landmarks[4];
-            const thumbIP = landmarks[3];
-            const thumbMCP = landmarks[2];
-            fingers.push(thumbTip.x < thumbIP.x);  // 简化判断
-
-            // 其他四指
-            const fingerTips = [8, 12, 16, 20];
-            const fingerPIPs = [6, 10, 14, 18];
-            const fingerMCPs = [5, 9, 13, 17];
-
-            for (let i = 0; i < 4; i++) {
-                const tip = landmarks[fingerTips[i]];
-                const pip = landmarks[fingerPIPs[i]];
-                const mcp = landmarks[fingerMCPs[i]];
-
-                // 手指伸直判断：指尖高于PIP关节
-                fingers.push(tip.y < pip.y - 0.02);
-            }
-
-            return fingers;
-        }
-
-        // 计算手掌大小
-        function getPalmSize(landmarks) {
-            const wrist = landmarks[0];
-            const middleMCP = landmarks[9];
-            return Math.sqrt(
-                Math.pow(wrist.x - middleMCP.x, 2) +
-                Math.pow(wrist.y - middleMCP.y, 2)
-            );
-        }
-
-        // 更新手的方向
-        function updateHandDirection(landmarks) {
-            // 使用食指方向
-            const indexTip = landmarks[8];
-            const indexMCP = landmarks[5];
-
-            // 转换为3D空间方向
-            const dirX = (indexTip.x - 0.5) * 2;  // -1 到 1
-            const dirY = -(indexTip.y - 0.5) * 2;  // -1 到 1
-
-            handDirection.set(dirX * 15, dirY * 15, -10);
-
-            // 手掌中心位置
-            const palmCenter = landmarks[9];
-            handPosition.set(
-                (palmCenter.x - 0.5) * 30,
-                -(palmCenter.y - 0.5) * 30,
-                0
-            );
-        }
-
-        // ==================== 动画循环 ====================
-        let time = 0;
-
-        function animate() {
-            requestAnimationFrame(animate);
-
-            time += 0.016;
-            sphereRotation += 0.005;
-
-            // 更新过渡状态
-            if (isTransitioning) {
-                transitionProgress += 0.02;
-                if (transitionProgress >= 1) {
-                    isTransitioning = false;
-                    currentMode = targetMode;
-                }
-            } else {
-                currentMode = targetMode;
-            }
-
-            // 根据模式更新飞剑
-            const flyTarget = handDirection.clone();
-
-            for (const sword of swords) {
-                switch (currentMode) {
-                    case 'sphere':
-                        sword.updateSphereMode(time);
-                        sword.targetScale = 1;
-                        break;
-                    case 'fly':
-                        sword.updateFlyMode(swords, flyTarget);
-                        sword.targetScale = 1;
-                        break;
-                    case 'scatter':
-                        sword.updateScatterMode(time);
-                        sword.targetScale = 0.8;
-                        break;
-                    case 'rain':
-                        sword.updateRainMode(time);
-                        break;
-                }
-
-                sword.updateMesh();
-            }
-
-            // 更新相机
-            updateCamera();
-
-            // 星星闪烁
-            if (stars[0]) {
-                stars[0].rotation.y += 0.0002;
-            }
-
-            composer.render();
-        }
-
-        // 更新相机位置
-        function updateCamera() {
-            let targetCameraPos;
-
-            switch (currentMode) {
-                case 'sphere':
-                    targetCameraPos = new THREE.Vector3(0, 0, 25);
-                    cameraTarget.set(0, 0, 0);
-                    break;
-                case 'fly':
-                    // 跟随剑群中心
-                    const center = getSwordsCenter();
-                    targetCameraPos = new THREE.Vector3(
-                        center.x * 0.3,
-                        center.y * 0.3,
-                        25 + center.z * 0.2
-                    );
-                    cameraTarget.lerp(center, 0.05);
-                    break;
-                case 'scatter':
-                    targetCameraPos = new THREE.Vector3(0, 0, 35);
-                    cameraTarget.set(0, 0, 0);
-                    break;
-                case 'rain':
-                    targetCameraPos = new THREE.Vector3(0, 5, 20);
-                    cameraTarget.set(0, 0, -5);
-                    break;
-            }
-
-            camera.position.lerp(targetCameraPos, 0.03);
-            camera.lookAt(cameraTarget);
-        }
-
-        // 获取剑群中心
-        function getSwordsCenter() {
-            const center = new THREE.Vector3();
-            for (const sword of swords) {
-                center.add(sword.position);
-            }
-            center.divideScalar(swords.length);
-            return center;
-        }
-
-        // ==================== 启动 ====================
-        initScene();
-        animate();
-
-        // 加载 MediaPipe
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';
-        script.crossOrigin = 'anonymous';
-        script.onload = () => {
-            initHandTracking();
-        };
-        document.head.appendChild(script);
-
+        trailSystem.update();energyWeb.update(swords,time);
+        updateCoreOrb(time);updateRuneCircles(time);updateAtmosphericParticles(time);
+        if(currentMode==='fly'){let ts=0;for(const s of swords)ts+=s.velocity.length();prevFlySpeed=ts/swords.length;}else prevFlySpeed=0;
+        updateShockwave();updateLightBeam(time);updateSkyBackground();
+        updateCamera();if(starField)starField.rotation.y+=0.00015;
+        composer.render();
+    }
+    function updateCoreOrb(time){const tv=(currentMode==='sphere')?1:(currentMode==='rain')?0.6+dagengContract*0.8:(currentMode==='wuji')?0.8+vortexPulse*0.6:(currentMode==='giant')?1.0:0.15;const spd=isTransitioning?0.15:0.04;coreVisibility+=(tv-coreVisibility)*spd;const b=Math.sin(time*2)*0.3+0.7,v=coreVisibility;coreOrbData.innerMat.opacity=(0.5+b*0.3)*v;coreOrbData.outerMat.opacity=(0.15+b*0.15)*v;const s=(0.8+b*0.4)*v;coreOrbData.outer.scale.set(s,s,s);coreOrbData.light.intensity=(1+b*2.5)*v;coreOrbData.group.visible=v>0.02;}
+    function updateRuneCircles(time){const tv=(currentMode==='sphere')?1:(currentMode==='rain')?0.6:(currentMode==='wuji')?0.5:(currentMode==='giant')?0.5:0.05;const b=Math.sin(time*2)*0.3+0.7;for(const rg of runeCircleGroups){const ud=rg.userData;rg.rotation.z+=ud.speed*0.016;rg.children[0].material.opacity=ud.baseOpacity*(0.6+b*0.4)*tv;rg.children[1].material.opacity=ud.baseOpacity*0.3*(0.5+b*0.5)*tv;for(const m of ud.markers){m.material.opacity=ud.baseOpacity*2*(0.4+b*0.6)*tv;m.rotation.y+=0.03;m.rotation.x+=0.01;}rg.visible=tv>0.02;}}
+    function updateAtmosphericParticles(time){const p=atmosphericParticles.geometry.attributes.position.array,c=CONFIG.ATMO_COUNT;for(let i=0;i<c;i++){p[i*3+1]+=0.007;p[i*3]+=Math.sin(time*0.5+i*0.3)*0.002;p[i*3+2]+=Math.cos(time*0.3+i*0.2)*0.0015;if(p[i*3+1]>30)p[i*3+1]=-30;}atmosphericParticles.geometry.attributes.position.needsUpdate=true;atmosphericParticles.material.opacity=0.14+Math.sin(time*1.5)*0.04;}
+    function updateShockwave(){if(!shockwaveData.active)return;shockwaveData.progress+=0.016/CONFIG.SHOCKWAVE_DURATION;if(shockwaveData.progress>=1){shockwaveData.active=false;shockwaveData.mesh.visible=false;}else{const r=CONFIG.SHOCKWAVE_MAX_RADIUS*shockwaveData.progress;shockwaveData.mesh.scale.set(r,r,r);shockwaveData.mat.opacity=(1-shockwaveData.progress)*0.12;}}
+    function updateLightBeam(time){if(!lightBeamData)return;const r=currentMode==='rain';const to=r?(0.08+dagengContract*0.35):0,tc=r?(0.1+dagengContract*0.5):0;lightBeamData.beamMat.opacity+=(to-lightBeamData.beamMat.opacity)*0.05;lightBeamData.coreMat.opacity+=(tc-lightBeamData.coreMat.opacity)*0.05;const rt=r?dagengContract*0.5:0;lightBeamData.ringMat.opacity+=(rt-lightBeamData.ringMat.opacity)*0.05;if(r){const s=1+dagengContract*4;lightBeamData.glowRing.scale.set(s,s,s);}const bt=r?(0.06+dagengContract*0.2):0;lightBeamData.baseMat.opacity+=(bt-lightBeamData.baseMat.opacity)*0.05;if(r){const bs=1+dagengContract*2;lightBeamData.baseRing.scale.set(bs,bs,bs);}lightBeamData.group.visible=lightBeamData.beamMat.opacity>0.005;}
+    function updateSkyBackground(){const t=(currentMode==='giant')?skyGiantColor:(currentMode==='wuji')?skyWujiColor:(currentMode==='rain')?skyStormColor:skyBaseColor;const spd=isTransitioning?0.12:0.02;scene.background.lerp(t,spd);scene.fog.color.lerp(t,spd);}
+    function updateCamera(){let tp;switch(currentMode){case'sphere':tp=new THREE.Vector3(0,0,25);cameraTarget.set(0,0,0);break;case'fly':{const c=getSwordsCenter();tp=new THREE.Vector3(c.x*0.3,c.y*0.3,25+c.z*0.2);cameraTarget.lerp(c,0.05);break;}case'scatter':tp=new THREE.Vector3(0,0,35);cameraTarget.set(0,0,0);break;case'rain':{const a=time*CONFIG.ORBIT_SPEED;tp=new THREE.Vector3(Math.cos(a)*CONFIG.ORBIT_RADIUS,-5+Math.sin(time*0.3)*1.5,Math.sin(a)*CONFIG.ORBIT_RADIUS);cameraTarget.set(0,4+Math.sin(time*0.2)*0.5,0);break;}case'wuji':{const a=time*0.06;tp=new THREE.Vector3(Math.cos(a)*16,1+Math.sin(time*0.25)*1.5,Math.sin(a)*16);cameraTarget.set(0,2+Math.sin(time*0.15)*0.5,0);break;}case'giant':{const ft=time*0.12,cx=Math.sin(ft)*8,cz=Math.sin(ft*2)*4,cy=Math.sin(ft*0.5)*2+1;if(time-giantStartTime<5){tp=new THREE.Vector3(cx,cy,cz+20);cameraTarget.set(cx,cy+2,cz);}else{const ot=time-5,rd=Math.max(14,28-ot*0.4),a=time*0.15,scan=Math.sin(ot*0.06);tp=new THREE.Vector3(cx+Math.cos(a)*rd,cy+scan*3,cz+Math.sin(a)*rd);cameraTarget.set(cx,cy-scan*1.5,cz);}break;}}camera.position.lerp(tp,0.03);camera.lookAt(cameraTarget);}
+    function getSwordsCenter(){const c=new THREE.Vector3();for(const s of swords)c.add(s.position);c.divideScalar(swords.length);return c;}
+
+    initScene();animate();
+    document.addEventListener('mousemove',e=>{const x=(e.clientX/window.innerWidth)*2-1,y=-(e.clientY/window.innerHeight)*2+1;handDirection.set(x*15,y*15,-10);handDetected=true;});
+    document.addEventListener('keydown',e=>{const modes={'1':'fly','2':'sphere','3':'scatter','4':'rain','5':'wuji','6':'giant'};const names={'1':'御剑飞行','2':'剑阵归位','3':'天女散剑','4':'大庚剑阵','5':'无极剑涡','6':'万剑归宗'};if(modes[e.key]&&modes[e.key]!==currentMode){targetMode=modes[e.key];document.getElementById('mode-display').textContent=names[e.key];isTransitioning=true;transitionProgress=0;triggerShockwave();}});
+    const script=document.createElement('script');script.src='https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js';script.crossOrigin='anonymous';
+    script.onload=()=>{initHandTracking();};document.head.appendChild(script);
     </script>
 </body>
 </html>
