@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>大庚剑阵 - 御剑飞行</title>
+    <title>修个仙</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { overflow: hidden; background: #000; font-family: 'Microsoft YaHei', sans-serif; }
@@ -28,16 +28,17 @@
     </div>
     <div id="mode-display">大庚剑阵</div>
     <div id="gesture-info">
-        ✊ 握拳 · 剑阵归位<br>
-        ☝️ 一指 · 御剑飞行<br>
-        ✌️ 二指 · 大庚剑阵<br>
-        🤟 三指 · 无极剑涡<br>
-        🖖 四指 · 万剑归宗<br>
-        🖐️ 五指 · 天女散剑
+        ✊ 握拳 ·  聚<br>
+        ☝️ 一指 ·  飞<br>
+        ✌️ 二指 ·  阵<br>
+        🤟 三指 ·  转<br>
+        🖖 四指 ·  合<br>
+        🖐️ 五指 ·  散
     </div>
     <div class="loading" id="loading">宝圣到此一游...</div>
 
     <script type="importmap">{"imports":{"three":"https://unpkg.com/three@0.160.0/build/three.module.js","three/addons/":"https://unpkg.com/three@0.160.0/examples/jsm/"}}</script>
+
 
     <script type="module">
     import * as THREE from 'three';
@@ -147,7 +148,7 @@
 
     async function initHandTracking(){const v=document.getElementById('video'),c=document.getElementById('canvas-overlay'),ctx=c.getContext('2d');try{const s=await navigator.mediaDevices.getUserMedia({video:{width:640,height:480}});v.srcObject=s;await new Promise(r=>{v.onloadedmetadata=()=>{c.width=v.videoWidth;c.height=v.videoHeight;r();};});document.getElementById('loading').classList.add('hidden');const hands=new Hands({locateFile:f=>`https://cdn.jsdelivr.net/npm/@mediapipe/hands/${f}`});hands.setOptions({maxNumHands:1,modelComplexity:1,minDetectionConfidence:0.7,minTrackingConfidence:0.5});hands.onResults(r=>{ctx.clearRect(0,0,c.width,c.height);if(r.multiHandLandmarks&&r.multiHandLandmarks.length>0){handDetected=true;handLandmarks=r.multiHandLandmarks[0];drawHand(ctx,handLandmarks,c.width,c.height);recognizeGesture(handLandmarks);updateHandDirection(handLandmarks);}else{handDetected=false;gestureType='none';}});const df=async()=>{await hands.send({image:v});requestAnimationFrame(df);};v.onloadeddata=()=>{df();};}catch(e){console.error(e);document.getElementById('loading').textContent='摄像头初始化失败，请检查权限';}}
     function drawHand(ctx,l,w,h){ctx.fillStyle='#00ff88';ctx.strokeStyle='#00ff88';ctx.lineWidth=2;const cs=[[0,1],[1,2],[2,3],[3,4],[0,5],[5,6],[6,7],[7,8],[0,9],[9,10],[10,11],[11,12],[0,13],[13,14],[14,15],[15,16],[0,17],[17,18],[18,19],[19,20],[5,9],[9,13],[13,17]];ctx.beginPath();for(const[i,j]of cs){ctx.moveTo(l[i].x*w,l[i].y*h);ctx.lineTo(l[j].x*w,l[j].y*h);}ctx.stroke();for(const p of l){ctx.beginPath();ctx.arc(p.x*w,p.y*h,4,0,Math.PI*2);ctx.fill();}}
-    function recognizeGesture(l){const f=getFingerStates(l),fc=f.filter(f=>f).length,ps=getPalmSize(l);previousGesture=gestureType;if(fc===1&&f[1]){gestureType='point';targetMode='fly';document.getElementById('mode-display').textContent='御剑飞行';}else if(fc===0&&ps>0.08){gestureType='fist';targetMode='sphere';document.getElementById('mode-display').textContent='剑阵归位';}else if(fc===5){gestureType='open';targetMode='scatter';document.getElementById('mode-display').textContent='天女散剑';}else if(fc===4&&f[1]&&f[2]&&f[3]){gestureType='four';targetMode='giant';document.getElementById('mode-display').textContent='万剑归宗';}else if(fc===3&&f[1]&&f[2]){gestureType='three';targetMode='wuji';document.getElementById('mode-display').textContent='无极剑涡';}else if(fc===2&&f[1]&&f[2]){gestureType='two';targetMode='rain';document.getElementById('mode-display').textContent='大庚剑阵';}if(previousGesture!==gestureType&&gestureType!=='none'){isTransitioning=true;transitionProgress=0;triggerShockwave();}}
+    function recognizeGesture(l){const f=getFingerStates(l),fc=f.filter(f=>f).length,ps=getPalmSize(l);previousGesture=gestureType;if(fc===1&&f[1]){gestureType='point';targetMode='fly';document.getElementById('mode-display').textContent='飞';}else if(fc===0&&ps>0.08){gestureType='fist';targetMode='sphere';document.getElementById('mode-display').textContent='聚';}else if(fc===5){gestureType='open';targetMode='scatter';document.getElementById('mode-display').textContent='散';}else if(fc===4&&f[1]&&f[2]&&f[3]){gestureType='four';targetMode='giant';document.getElementById('mode-display').textContent='合';}else if(fc===3&&f[1]&&f[2]){gestureType='three';targetMode='wuji';document.getElementById('mode-display').textContent='转';}else if(fc===2&&f[1]&&f[2]){gestureType='two';targetMode='rain';document.getElementById('mode-display').textContent='阵';}if(previousGesture!==gestureType&&gestureType!=='none'){isTransitioning=true;transitionProgress=0;triggerShockwave();}}
     function getFingerStates(l){const f=[];f.push(l[4].x<l[3].x);const ts=[8,12,16,20],ps=[6,10,14,18];for(let i=0;i<4;i++)f.push(l[ts[i]].y<l[ps[i]].y-0.02);return f;}
     function getPalmSize(l){const w=l[0],m=l[9];return Math.sqrt((w.x-m.x)**2+(w.y-m.y)**2);}
     function updateHandDirection(l){handDirection.set((l[8].x-0.5)*2*15,-(l[8].y-0.5)*2*15,-10);handPosition.set((l[9].x-0.5)*30,-(l[9].y-0.5)*30,0);}
