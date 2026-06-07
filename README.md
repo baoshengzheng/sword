@@ -54,7 +54,7 @@ cd Flying-Sword-Formation
 
 ### 2. 直接运行
 
-用浏览器直接打开 `大庚剑阵.html` 文件即可。
+用浏览器直接打开 `index.html` 文件即可。
 
 > 推荐使用 Chrome / Edge 最新版本，确保支持 WebGL 和摄像头访问。
 
@@ -111,7 +111,7 @@ MediaPipe 识别手部 21 个关键点后，通过指尖和指节的位置关系
 
 ```
 Flying-Sword-Formation/
-├── 大庚剑阵.html     # 主页面（全部逻辑内嵌）
+├── index.html         # 主页面（全部逻辑内嵌）
 ├── README.md          # 项目文档
 └── .gitattributes     # Git 配置
 ```
