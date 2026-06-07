@@ -48,7 +48,7 @@
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/zhangjihai360/Flying-Sword-Formation
+git clone https://github.com/baoshengzheng/sword.git
 cd Flying-Sword-Formation
 ```
 
